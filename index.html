@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1v1 ARENA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── LOBBY ── -->
+  <div id="lobby">
+    <div class="bg-grid"></div>
+    <div class="scanline"></div>
+
+    <div class="lobby-content">
+      <div class="title-block">
+        <div class="title-tag">MULTIPLAYER</div>
+        <h1 class="title">1v1<br><span>ARENA</span></h1>
+        <p class="subtitle">실시간 탑뷰 대전 · WASD 이동</p>
+      </div>
+
+      <!-- 메인 버튼 -->
+      <div id="main-buttons" class="button-group">
+        <button class="btn btn-red" id="btn-create">
+          <span class="btn-icon">⊕</span>
+          <span class="btn-text">방 만들기</span>
+          <span class="btn-sub">CREATE ROOM</span>
+        </button>
+        <button class="btn btn-blue" id="btn-join">
+          <span class="btn-icon">⊞</span>
+          <span class="btn-text">방 참여하기</span>
+          <span class="btn-sub">JOIN ROOM</span>
+        </button>
+      </div>
+
+      <!-- 방 만들기 섹션 -->
+      <div id="create-section" class="panel hidden">
+        <div class="panel-label">ROOM CREATED</div>
+        <div class="code-display">
+          <span class="code-label">방 코드</span>
+          <div class="code-digits" id="room-code">
+            <span>-</span><span>-</span><span>-</span><span>-</span>
+          </div>
+        </div>
+        <div class="waiting">
+          <div class="pulse-dot"></div>
+          <span>상대방을 기다리는 중…</span>
+        </div>
+        <button class="btn-small" id="btn-cancel-create">취소</button>
+      </div>
+
+      <!-- 방 참여하기 섹션 -->
+      <div id="join-section" class="panel hidden">
+        <div class="panel-label">ENTER CODE</div>
+        <div class="digit-inputs">
+          <input class="digit" id="d0" type="text" maxlength="1" inputmode="numeric">
+          <input class="digit" id="d1" type="text" maxlength="1" inputmode="numeric">
+          <input class="digit" id="d2" type="text" maxlength="1" inputmode="numeric">
+          <input class="digit" id="d3" type="text" maxlength="1" inputmode="numeric">
+        </div>
+        <div id="join-status" class="join-status"></div>
+        <div class="join-buttons">
+          <button class="btn btn-blue" id="btn-enter">입 장</button>
+          <button class="btn-small" id="btn-cancel-join">취소</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── GAME ── -->
+  <div id="game-screen" class="hidden">
+    <div id="hud">
+      <div class="hud-player red-hud">
+        <span class="hud-dot red-dot"></span>
+        <span id="p1-label">YOU · RED</span>
+      </div>
+      <div class="hud-center">
+        <span id="room-display"></span>
+      </div>
+      <div class="hud-player blue-hud">
+        <span id="p2-label">ENEMY · BLUE</span>
+        <span class="hud-dot blue-dot"></span>
+      </div>
+    </div>
+    <canvas id="game-canvas"></canvas>
+    <div id="game-msg" class="game-msg hidden"></div>
+  </div>
+
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
