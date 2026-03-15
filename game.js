@@ -9,7 +9,7 @@
 const CANVAS_W  = 900;
 const CANVAS_H  = 540;
 const HUD_TOP   = 52;   // top HUD height
-const HUD_BOT   = 60;   // bottom HUD height
+const HUD_BOT   = 72;   // bottom HUD height
 const GAME_TOP  = HUD_TOP;
 const GAME_BOT  = CANVAS_H - HUD_BOT;
 const GAME_H    = GAME_BOT - GAME_TOP;
@@ -17,7 +17,7 @@ const CENTER_X  = CANVAS_W / 2;
 const PLAYER_R  = 18;
 const BASE_SPEED = 3.5;
 const BASE_HP   = 20;
-const SEND_RATE = 1000 / 30;  // 30 fps send
+const SEND_RATE = 1000 / 60;  // 60 fps send
 const PEER_PREFIX = 'arena1v1-';
 
 // ── CLASS CONFIG ────────────────────────────────────────────────
@@ -49,7 +49,11 @@ let phase = 'lobby'; // lobby | class_select | countdown | playing | gameover
 
 // Player
 let myPos = { x: 0, y: 0 };
-let enemyPos = { x: 0, y: 0 };
+let enemyPos   = { x: 0, y: 0 };
+// 보간용 — 수신된 실제 위치와 현재 렌더 위치를 분리
+let enemyRealPos   = { x: 0, y: 0 };   // 네트워크로 받은 위치
+let enemyRenderPos = { x: 0, y: 0 };   // 부드럽게 보간된 렌더 위치
+let enemyVel       = { x: 0, y: 0 };   // 수신 속도 추정값
 let myHP = BASE_HP, enemyHP = BASE_HP;
 let myClass = null, enemyClass = null;
 
@@ -195,8 +199,17 @@ function setupConn() {
 function handleData(data) {
   switch(data.type) {
     case 'pos':
-      enemyPos.x = data.x;
-      enemyPos.y = data.y;
+      // 이전 위치와의 차이로 속도 추정 (dead-reckoning 보간용)
+      // 전송된 속도가 있으면 그걸 사용, 없으면 위치 차이로 추정
+      if (data.vx !== undefined) {
+        enemyVel.x = data.vx;
+        enemyVel.y = data.vy;
+      } else {
+        enemyVel.x = data.x - enemyRealPos.x;
+        enemyVel.y = data.y - enemyRealPos.y;
+      }
+      enemyRealPos.x = data.x;
+      enemyRealPos.y = data.y;
       break;
 
     case 'class':
@@ -281,8 +294,12 @@ function startCountdown() {
 
   myHP = BASE_HP; enemyHP = BASE_HP;
   normalCDEnd = 0; specialCDEnd = 0;
+  // 보간 위치 초기화
   myProjectiles = []; enemyProjectiles = [];
   hitEffects = []; healEffect = null;
+  enemyRealPos   = { x: enemyPos.x, y: enemyPos.y };
+  enemyRenderPos = { x: enemyPos.x, y: enemyPos.y };
+  enemyVel       = { x: 0, y: 0 };
   speedBoostEnd = 0; rapidFireEnd = 0;
   isCharging = false;
 
@@ -474,12 +491,23 @@ function update(now) {
   }
   myPos.y = clamp(myPos.y, GAME_TOP + PLAYER_R + 3, GAME_BOT - PLAYER_R - 3);
 
+  // 적 위치 보간 (Lerp + dead-reckoning)
+  const LERP = 0.28;   // 클수록 빠르게 추적, 작을수록 부드러움
+  // dead-reckoning: 수신 위치에서 속도로 예측 전진
+  const predX = enemyRealPos.x + enemyVel.x * 0.6;
+  const predY = enemyRealPos.y + enemyVel.y * 0.6;
+  enemyRenderPos.x += (predX - enemyRenderPos.x) * LERP;
+  enemyRenderPos.y += (predY - enemyRenderPos.y) * LERP;
+  // 충돌 계산용 enemyPos는 렌더 위치와 동기
+  enemyPos.x = enemyRenderPos.x;
+  enemyPos.y = enemyRenderPos.y;
+
   // Update projectiles
   updateProjs(now);
 
   // Send position
   if (conn && conn.open && now - lastSendTime > SEND_RATE) {
-    conn.send({ type: 'pos', x: myPos.x, y: myPos.y });
+    conn.send({ type: 'pos', x: myPos.x, y: myPos.y, vx: dx * speed, vy: dy * speed });
     lastSendTime = now;
   }
 }
@@ -520,7 +548,7 @@ function updateProjs(now) {
 }
 
 function projRadius(type) {
-  return { fireball: 11, dagger: 6, arrow: 5 }[type] || 6;
+  return { fireball: 18, dagger: 9, arrow: 7 }[type] || 8;
 }
 
 // ── DRAW ──────────────────────────────────────────────────────────
@@ -655,35 +683,46 @@ function drawProjectile(p) {
   const angle = Math.atan2(p.vy, p.vx);
 
   if (p.type === 'fireball') {
-    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 11);
-    g.addColorStop(0, '#fff8e0');
-    g.addColorStop(0.35, '#ff7700');
+    // 외부 글로우 링
+    ctx.beginPath(); ctx.arc(p.x, p.y, 22, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,80,0,0.18)'; ctx.fill();
+    // 메인 파이어볼 그라디언트
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 18);
+    g.addColorStop(0, '#fffde0');
+    g.addColorStop(0.3, '#ff9900');
+    g.addColorStop(0.7, '#ff3300');
     g.addColorStop(1, 'rgba(255,40,0,0)');
     ctx.fillStyle = g;
-    ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 16;
-    ctx.beginPath(); ctx.arc(p.x, p.y, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 24;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 18, 0, Math.PI * 2); ctx.fill();
 
   } else if (p.type === 'dagger') {
     ctx.translate(p.x, p.y); ctx.rotate(angle);
-    ctx.strokeStyle = '#88ffcc'; ctx.lineWidth = 3;
-    ctx.shadowColor = '#44ff88'; ctx.shadowBlur = 12;
-    ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(10, 0); ctx.stroke();
-    // Tip
-    ctx.fillStyle = '#ccffee';
-    ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(5, -2.5); ctx.lineTo(5, 2.5); ctx.closePath(); ctx.fill();
+    // 글로우 외곽
+    ctx.strokeStyle = 'rgba(68,255,136,0.3)'; ctx.lineWidth = 8;
+    ctx.shadowColor = '#44ff88'; ctx.shadowBlur = 20;
+    ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(16, 0); ctx.stroke();
+    // 날
+    ctx.strokeStyle = '#ccffee'; ctx.lineWidth = 4;
+    ctx.shadowBlur = 14;
+    ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(16, 0); ctx.stroke();
+    // 팁
+    ctx.fillStyle = '#eeffee';
+    ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(9, -4); ctx.lineTo(9, 4); ctx.closePath(); ctx.fill();
 
   } else if (p.type === 'arrow') {
     ctx.translate(p.x, p.y); ctx.rotate(angle);
-    ctx.strokeStyle = '#ffdd88'; ctx.lineWidth = 2;
-    ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 8;
-    ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(5, 0); ctx.stroke();
-    // Arrowhead
-    ctx.fillStyle = '#ffdd88';
-    ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(2, -3.5); ctx.lineTo(2, 3.5); ctx.closePath(); ctx.fill();
-    // Feather
-    ctx.strokeStyle = 'rgba(255,220,100,0.5)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(-11, 0); ctx.lineTo(-14, -4); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-11, 0); ctx.lineTo(-14, 4); ctx.stroke();
+    ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 14;
+    // 화살대
+    ctx.strokeStyle = '#ffcc44'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-20, 0); ctx.lineTo(8, 0); ctx.stroke();
+    // 화살촉
+    ctx.fillStyle = '#fff0aa';
+    ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(6, -5.5); ctx.lineTo(6, 5.5); ctx.closePath(); ctx.fill();
+    // 깃털
+    ctx.strokeStyle = 'rgba(255,220,100,0.7)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(-20, -6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(-20, 6); ctx.stroke();
   }
 
   ctx.restore();
@@ -726,20 +765,20 @@ function drawHUD(now) {
 
     // Normal attack CD icon
     const nPct = normalCDEnd === 0 ? 1 : Math.min(1, (now - (normalCDEnd - cfg.normalCD)) / cfg.normalCD);
-    drawCDIcon(55, hudMidY, 22, nPct, myColor, cfg.normalIcon, cfg.normalLabel, 'L-Click');
+    drawCDIcon(46, hudMidY, 32, nPct, myColor, cfg.normalIcon, cfg.normalLabel, 'L-Click');
 
     // Special CD icon
     const sPct = specialCDEnd === 0 ? 1 : Math.min(1, (now - (specialCDEnd - cfg.specialCD)) / cfg.specialCD);
-    drawCDIcon(120, hudMidY, 22, sPct, myColor, cfg.specialIcon, cfg.specialLabel, 'R-Click');
+    drawCDIcon(120, hudMidY, 32, sPct, myColor, cfg.specialIcon, cfg.specialLabel, 'R-Click');
 
     // Class label
     ctx.fillStyle = myColor;
-    ctx.font = 'bold 13px Orbitron, monospace';
+    ctx.font = 'bold 15px Orbitron, monospace';
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText(cfg.name, 162, hudMidY - 6);
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.font = '10px Rajdhani, sans-serif';
-    ctx.fillText('나의 직업', 162, hudMidY + 9);
+    ctx.fillText(cfg.name, 172, hudMidY - 7);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '11px Rajdhani, sans-serif';
+    ctx.fillText('나의 직업', 172, hudMidY + 9);
 
     // Active skill timers
     let timerX = 300;
@@ -831,7 +870,7 @@ function drawCDIcon(cx, cy, r, pct, color, icon, label, keyLabel) {
   ctx.restore();
 
   // Icon emoji
-  ctx.font = `${Math.round(r * 0.9)}px serif`;
+  ctx.font = `${Math.round(r * 1.0)}px serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.globalAlpha = pct >= 1 ? 1 : 0.4;
   ctx.fillText(icon, cx, cy + 1);
@@ -839,7 +878,7 @@ function drawCDIcon(cx, cy, r, pct, color, icon, label, keyLabel) {
 
   // Skill label below
   ctx.fillStyle = pct >= 1 ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.25)';
-  ctx.font = '8px Orbitron, monospace';
+  ctx.font = '9px Orbitron, monospace';
   ctx.textAlign = 'center'; ctx.textBaseline = 'top';
   ctx.fillText(label, cx, cy + r + 3);
 
@@ -849,7 +888,7 @@ function drawCDIcon(cx, cy, r, pct, color, icon, label, keyLabel) {
     const cdFull = (keyLabel === 'L-Click') ? (cdCfg ? cdCfg.normalCD : 0) : (cdCfg ? cdCfg.specialCD : 0);
     const remain = ((1 - pct) * cdFull / 1000).toFixed(1);
     ctx.fillStyle = '#ffaa00';
-    ctx.font = 'bold 9px Orbitron, monospace';
+    ctx.font = 'bold 11px Orbitron, monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(remain, cx, cy);
   }
@@ -863,13 +902,13 @@ function drawActiveSkillTimer(cx, cy, label, seconds, color) {
   ctx.strokeRect(cx, cy - th/2, tw, th);
 
   ctx.fillStyle = color;
-  ctx.font = '11px Orbitron, monospace';
+  ctx.font = '12px Orbitron, monospace';
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText(label, cx + 8, cy - 4);
+  ctx.fillText(label, cx + 10, cy - 5);
 
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 11px Orbitron, monospace';
-  ctx.fillText(seconds + 's', cx + 8, cy + 9);
+  ctx.font = 'bold 13px Orbitron, monospace';
+  ctx.fillText(seconds + 's', cx + 10, cy + 10);
 }
 
 // ── GAME LOOP ─────────────────────────────────────────────────────
