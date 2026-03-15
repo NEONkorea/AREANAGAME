@@ -9,7 +9,7 @@
 const CANVAS_W  = 900;
 const CANVAS_H  = 540;
 const HUD_TOP   = 52;   // top HUD height
-const HUD_BOT   = 72;   // bottom HUD height
+const HUD_BOT   = 92;   // bottom HUD height
 const GAME_TOP  = HUD_TOP;
 const GAME_BOT  = CANVAS_H - HUD_BOT;
 const GAME_H    = GAME_BOT - GAME_TOP;
@@ -41,6 +41,9 @@ const CLASSES = {
     normalIcon: '🎯', specialIcon: '🔀'
   }
 };
+
+// ── OFFSCREEN CACHE ─────────────────────────────────────────────
+let gridCache = null;  // 그리드 배경 캐시 (매 프레임 재생성 방지)
 
 // ── SHARED STATE ────────────────────────────────────────────────
 let peer = null, conn = null;
@@ -548,25 +551,32 @@ function updateProjs(now) {
 }
 
 function projRadius(type) {
-  return { fireball: 36, dagger: 18, arrow: 14 }[type] || 14;
+  return { fireball: 58, dagger: 28, arrow: 20 }[type] || 20;
 }
 
 // ── DRAW ──────────────────────────────────────────────────────────
 function draw(now) {
+  ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
   ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
   // ── Background
   ctx.fillStyle = '#080c14';
   ctx.fillRect(0, GAME_TOP, CANVAS_W, GAME_H);
 
-  // Grid lines (최적화: 단일 path로 일괄 stroke)
+  // Grid — offscreen 캐시 (최초 1회만 생성)
   ctx.shadowBlur = 0;
-  ctx.strokeStyle = 'rgba(0,170,255,0.04)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (let gx = 0; gx <= CANVAS_W; gx += 50) { ctx.moveTo(gx, GAME_TOP); ctx.lineTo(gx, GAME_BOT); }
-  for (let gy = GAME_TOP; gy <= GAME_BOT; gy += 50) { ctx.moveTo(0, gy); ctx.lineTo(CANVAS_W, gy); }
-  ctx.stroke();
+  if (!gridCache) {
+    gridCache = document.createElement('canvas');
+    gridCache.width = CANVAS_W; gridCache.height = CANVAS_H;
+    const gc = gridCache.getContext('2d');
+    gc.strokeStyle = 'rgba(0,170,255,0.06)';
+    gc.lineWidth = 1;
+    gc.beginPath();
+    for (let gx = 0; gx <= CANVAS_W; gx += 50) { gc.moveTo(gx, GAME_TOP); gc.lineTo(gx, GAME_BOT); }
+    for (let gy = GAME_TOP; gy <= GAME_BOT; gy += 50) { gc.moveTo(0, gy); gc.lineTo(CANVAS_W, gy); }
+    gc.stroke();
+  }
+  ctx.drawImage(gridCache, 0, 0);
 
   // ── Center dividing line (RED, cannot cross)
   ctx.save();
@@ -686,48 +696,64 @@ function drawProjectile(p) {
   const angle = Math.atan2(p.vy, p.vx);
 
   if (p.type === 'fireball') {
-    // 외부 글로우 링 (2배)
-    ctx.beginPath(); ctx.arc(p.x, p.y, 44, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,80,0,0.13)'; ctx.fill();
-    ctx.beginPath(); ctx.arc(p.x, p.y, 32, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,100,0,0.18)'; ctx.fill();
-    // 메인 파이어볼 그라디언트 (2배)
-    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 36);
-    g.addColorStop(0, '#fffde0');
-    g.addColorStop(0.25, '#ffcc00');
-    g.addColorStop(0.55, '#ff5500');
-    g.addColorStop(1, 'rgba(255,40,0,0)');
+    // 외곽 대형 글로우
+    ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 78, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,60,0,0.08)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x, p.y, 58, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,90,0,0.14)'; ctx.fill();
+    // 메인 파이어볼
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 62);
+    g.addColorStop(0,   '#ffffff');
+    g.addColorStop(0.15,'#fffde0');
+    g.addColorStop(0.35,'#ffcc00');
+    g.addColorStop(0.65,'#ff4400');
+    g.addColorStop(1,   'rgba(255,30,0,0)');
     ctx.fillStyle = g;
-    ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 36;
-    ctx.beginPath(); ctx.arc(p.x, p.y, 36, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 50;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 62, 0, Math.PI * 2); ctx.fill();
 
   } else if (p.type === 'dagger') {
     ctx.translate(p.x, p.y); ctx.rotate(angle);
-    // 글로우 외곽 (2배)
-    ctx.strokeStyle = 'rgba(68,255,136,0.25)'; ctx.lineWidth = 16;
-    ctx.shadowColor = '#44ff88'; ctx.shadowBlur = 30;
-    ctx.beginPath(); ctx.moveTo(-36, 0); ctx.lineTo(32, 0); ctx.stroke();
-    // 날 (2배)
-    ctx.strokeStyle = '#ccffee'; ctx.lineWidth = 8;
-    ctx.shadowBlur = 20;
-    ctx.beginPath(); ctx.moveTo(-36, 0); ctx.lineTo(32, 0); ctx.stroke();
-    // 팁 (2배)
-    ctx.fillStyle = '#eeffee';
-    ctx.beginPath(); ctx.moveTo(32, 0); ctx.lineTo(18, -8); ctx.lineTo(18, 8); ctx.closePath(); ctx.fill();
+    // 대형 글로우 외곽
+    ctx.strokeStyle = 'rgba(68,255,136,0.18)'; ctx.lineWidth = 28;
+    ctx.shadowColor = '#44ff88'; ctx.shadowBlur = 45;
+    ctx.beginPath(); ctx.moveTo(-56, 0); ctx.lineTo(54, 0); ctx.stroke();
+    // 날 본체
+    ctx.strokeStyle = '#ddfff0'; ctx.lineWidth = 14;
+    ctx.shadowBlur = 28;
+    ctx.beginPath(); ctx.moveTo(-56, 0); ctx.lineTo(54, 0); ctx.stroke();
+    // 날 중심 하이라이트
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4;
+    ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(-50, 0); ctx.lineTo(48, 0); ctx.stroke();
+    // 팁
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.moveTo(54, 0); ctx.lineTo(36, -14); ctx.lineTo(36, 14); ctx.closePath(); ctx.fill();
 
   } else if (p.type === 'arrow') {
     ctx.translate(p.x, p.y); ctx.rotate(angle);
-    ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 22;
-    // 화살대 (2배)
-    ctx.strokeStyle = '#ffcc44'; ctx.lineWidth = 6;
-    ctx.beginPath(); ctx.moveTo(-40, 0); ctx.lineTo(16, 0); ctx.stroke();
-    // 화살촉 (2배)
-    ctx.fillStyle = '#fff0aa';
-    ctx.beginPath(); ctx.moveTo(28, 0); ctx.lineTo(12, -11); ctx.lineTo(12, 11); ctx.closePath(); ctx.fill();
-    // 깃털 (2배)
-    ctx.strokeStyle = 'rgba(255,220,100,0.75)'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(-28, 0); ctx.lineTo(-40, -12); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-28, 0); ctx.lineTo(-40, 12); ctx.stroke();
+    ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 32;
+    // 화살대 글로우
+    ctx.strokeStyle = 'rgba(255,180,0,0.35)'; ctx.lineWidth = 18;
+    ctx.beginPath(); ctx.moveTo(-62, 0); ctx.lineTo(26, 0); ctx.stroke();
+    // 화살대 본체
+    ctx.strokeStyle = '#ffdd55'; ctx.lineWidth = 8;
+    ctx.shadowBlur = 20;
+    ctx.beginPath(); ctx.moveTo(-62, 0); ctx.lineTo(26, 0); ctx.stroke();
+    // 화살대 하이라이트
+    ctx.strokeStyle = '#fffacc'; ctx.lineWidth = 3;
+    ctx.shadowBlur = 5;
+    ctx.beginPath(); ctx.moveTo(-58, 0); ctx.lineTo(20, 0); ctx.stroke();
+    // 화살촉
+    ctx.shadowBlur = 20; ctx.shadowColor = '#ffee88';
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.moveTo(46, 0); ctx.lineTo(20, -18); ctx.lineTo(20, 18); ctx.closePath(); ctx.fill();
+    // 깃털
+    ctx.strokeStyle = 'rgba(255,230,80,0.85)'; ctx.lineWidth = 5;
+    ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.moveTo(-44, 0); ctx.lineTo(-62, -18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-44, 0); ctx.lineTo(-62, 18); ctx.stroke();
   }
 
   ctx.restore();
@@ -771,20 +797,20 @@ function drawHUD(now) {
 
     // Normal attack CD icon
     const nPct = normalCDEnd === 0 ? 1 : Math.min(1, (now - (normalCDEnd - cfg.normalCD)) / cfg.normalCD);
-    drawCDIcon(46, hudMidY, 32, nPct, myColor, cfg.normalIcon, cfg.normalLabel, 'L-Click');
+    drawCDIcon(50, hudMidY, 40, nPct, myColor, cfg.normalIcon, cfg.normalLabel, 'L-Click');
 
     // Special CD icon
     const sPct = specialCDEnd === 0 ? 1 : Math.min(1, (now - (specialCDEnd - cfg.specialCD)) / cfg.specialCD);
-    drawCDIcon(120, hudMidY, 32, sPct, myColor, cfg.specialIcon, cfg.specialLabel, 'R-Click');
+    drawCDIcon(140, hudMidY, 40, sPct, myColor, cfg.specialIcon, cfg.specialLabel, 'R-Click');
 
     // Class label
     ctx.fillStyle = myColor;
-    ctx.font = 'bold 15px Orbitron, monospace';
+    ctx.font = 'bold 17px Orbitron, monospace';
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText(cfg.name, 172, hudMidY - 7);
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.font = '11px Rajdhani, sans-serif';
-    ctx.fillText('나의 직업', 172, hudMidY + 9);
+    ctx.fillText(cfg.name, 202, hudMidY - 8);
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '12px Rajdhani, sans-serif';
+    ctx.fillText('나의 직업', 202, hudMidY + 10);
 
     // Active skill timers
     let timerX = 300;
@@ -828,12 +854,14 @@ function drawHPBar(x, y, w, h, hp, maxHp, color, label) {
   ctx.fillRect(x, y, w * pct, h);
   ctx.restore();
 
-  // Segmented ticks
+  // Segmented ticks (단일 path)
   ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
+  ctx.beginPath();
   for (let i = 1; i < maxHp; i++) {
     const tx = x + (w / maxHp) * i;
-    ctx.beginPath(); ctx.moveTo(tx, y); ctx.lineTo(tx, y + h); ctx.stroke();
+    ctx.moveTo(tx, y); ctx.lineTo(tx, y + h);
   }
+  ctx.stroke();
 
   // Border
   ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
@@ -876,7 +904,7 @@ function drawCDIcon(cx, cy, r, pct, color, icon, label, keyLabel) {
   ctx.restore();
 
   // Icon emoji
-  ctx.font = `${Math.round(r * 1.0)}px serif`;
+  ctx.font = `${Math.round(r * 1.15)}px serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.globalAlpha = pct >= 1 ? 1 : 0.4;
   ctx.fillText(icon, cx, cy + 1);
@@ -884,9 +912,9 @@ function drawCDIcon(cx, cy, r, pct, color, icon, label, keyLabel) {
 
   // Skill label below
   ctx.fillStyle = pct >= 1 ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.25)';
-  ctx.font = '9px Orbitron, monospace';
+  ctx.font = 'bold 11px Orbitron, monospace';
   ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-  ctx.fillText(label, cx, cy + r + 3);
+  ctx.fillText(label, cx, cy + r + 4);
 
   // CD seconds remaining
   if (pct < 1) {
@@ -894,7 +922,7 @@ function drawCDIcon(cx, cy, r, pct, color, icon, label, keyLabel) {
     const cdFull = (keyLabel === 'L-Click') ? (cdCfg ? cdCfg.normalCD : 0) : (cdCfg ? cdCfg.specialCD : 0);
     const remain = ((1 - pct) * cdFull / 1000).toFixed(1);
     ctx.fillStyle = '#ffaa00';
-    ctx.font = 'bold 11px Orbitron, monospace';
+    ctx.font = 'bold 14px Orbitron, monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(remain, cx, cy);
   }
@@ -902,19 +930,19 @@ function drawCDIcon(cx, cy, r, pct, color, icon, label, keyLabel) {
 
 function drawActiveSkillTimer(cx, cy, label, seconds, color) {
   ctx.fillStyle = `${color}22`;
-  const tw = 145, th = 28;
+  const tw = 170, th = 36;
   ctx.fillRect(cx, cy - th/2, tw, th);
-  ctx.strokeStyle = color; ctx.lineWidth = 1;
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5;
   ctx.strokeRect(cx, cy - th/2, tw, th);
 
   ctx.fillStyle = color;
-  ctx.font = '12px Orbitron, monospace';
+  ctx.font = 'bold 13px Orbitron, monospace';
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText(label, cx + 10, cy - 5);
+  ctx.fillText(label, cx + 12, cy - 7);
 
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 13px Orbitron, monospace';
-  ctx.fillText(seconds + 's', cx + 10, cy + 10);
+  ctx.font = 'bold 16px Orbitron, monospace';
+  ctx.fillText(seconds + 's', cx + 12, cy + 11);
 }
 
 // ── GAME LOOP ─────────────────────────────────────────────────────
