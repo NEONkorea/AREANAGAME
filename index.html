@@ -14,15 +14,12 @@
   <div id="lobby">
     <div class="bg-grid"></div>
     <div class="scanline"></div>
-
     <div class="lobby-content">
       <div class="title-block">
         <div class="title-tag">MULTIPLAYER</div>
         <h1 class="title">1v1<br><span>ARENA</span></h1>
-        <p class="subtitle">실시간 탑뷰 대전 · WASD 이동</p>
+        <p class="subtitle">실시간 탑뷰 대전 · WASD 이동 · 마우스 공격</p>
       </div>
-
-      <!-- 메인 버튼 -->
       <div id="main-buttons" class="button-group">
         <button class="btn btn-red" id="btn-create">
           <span class="btn-icon">⊕</span>
@@ -35,8 +32,6 @@
           <span class="btn-sub">JOIN ROOM</span>
         </button>
       </div>
-
-      <!-- 방 만들기 섹션 -->
       <div id="create-section" class="panel hidden">
         <div class="panel-label">ROOM CREATED</div>
         <div class="code-display">
@@ -51,8 +46,6 @@
         </div>
         <button class="btn-small" id="btn-cancel-create">취소</button>
       </div>
-
-      <!-- 방 참여하기 섹션 -->
       <div id="join-section" class="panel hidden">
         <div class="panel-label">ENTER CODE</div>
         <div class="digit-inputs">
@@ -67,26 +60,119 @@
           <button class="btn-small" id="btn-cancel-join">취소</button>
         </div>
       </div>
+    </div>
+  </div>
 
+  <!-- ── CLASS SELECT ── -->
+  <div id="class-screen" class="hidden">
+    <div class="bg-grid"></div>
+    <div class="scanline"></div>
+    <div class="class-content">
+      <div class="class-header">
+        <div class="class-title-tag">PHASE 1 — CHARACTER SELECT</div>
+        <h2 class="class-title">직업 선택</h2>
+        <div id="class-opponent-status" class="opp-status">
+          <span class="pulse-dot"></span>상대방 선택 대기 중…
+        </div>
+      </div>
+
+      <div class="class-cards">
+
+        <!-- MAGICIAN -->
+        <div class="class-card" data-class="magician">
+          <div class="card-corner tl"></div>
+          <div class="card-corner tr"></div>
+          <div class="card-icon">🔮</div>
+          <div class="card-name" style="color:#c864ff">매지션</div>
+          <div class="card-flavor">광역 마법 딜러</div>
+          <div class="card-divider"></div>
+          <div class="card-skills">
+            <div class="skill-row">
+              <span class="skill-key lclick">L</span>
+              <div>
+                <div class="skill-name">화염볼 ×3</div>
+                <div class="skill-stat">3방향 · 8dmg · CD 1.8s</div>
+              </div>
+            </div>
+            <div class="skill-row">
+              <span class="skill-key rclick">R</span>
+              <div>
+                <div class="skill-name">체력 회복</div>
+                <div class="skill-stat">+4 HP · CD 50s</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-select-btn">선 택</div>
+        </div>
+
+        <!-- ASSASSIN -->
+        <div class="class-card" data-class="assassin">
+          <div class="card-corner tl"></div>
+          <div class="card-corner tr"></div>
+          <div class="card-icon">🗡️</div>
+          <div class="card-name" style="color:#44ff88">어쌔신</div>
+          <div class="card-flavor">고속 단거리 딜러</div>
+          <div class="card-divider"></div>
+          <div class="card-skills">
+            <div class="skill-row">
+              <span class="skill-key lclick">L</span>
+              <div>
+                <div class="skill-name">단검 투척</div>
+                <div class="skill-stat">빠른 속도 · 3dmg · CD 2.3s</div>
+              </div>
+            </div>
+            <div class="skill-row">
+              <span class="skill-key rclick">R</span>
+              <div>
+                <div class="skill-name">속도 부스트</div>
+                <div class="skill-stat">1.5× · 5초 · CD 20s</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-select-btn">선 택</div>
+        </div>
+
+        <!-- ARCHER -->
+        <div class="class-card" data-class="archer">
+          <div class="card-corner tl"></div>
+          <div class="card-corner tr"></div>
+          <div class="card-icon">🏹</div>
+          <div class="card-name" style="color:#ffaa00">아처</div>
+          <div class="card-flavor">차징 원거리 딜러</div>
+          <div class="card-divider"></div>
+          <div class="card-skills">
+            <div class="skill-row">
+              <span class="skill-key lclick">L</span>
+              <div>
+                <div class="skill-name">차징 화살</div>
+                <div class="skill-stat">홀드 차징 · 2~6.5dmg · CD 2s</div>
+              </div>
+            </div>
+            <div class="skill-row">
+              <span class="skill-key rclick">R</span>
+              <div>
+                <div class="skill-name">속사 모드</div>
+                <div class="skill-stat">3초간 연발 · CD 20s</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-select-btn">선 택</div>
+        </div>
+
+      </div>
+
+      <div id="class-status-bar" class="class-status-bar hidden">
+        ✓ 직업 선택 완료 — 상대방을 기다리는 중…
+      </div>
     </div>
   </div>
 
   <!-- ── GAME ── -->
   <div id="game-screen" class="hidden">
-    <div id="hud">
-      <div class="hud-player red-hud">
-        <span class="hud-dot red-dot"></span>
-        <span id="p1-label">YOU · RED</span>
-      </div>
-      <div class="hud-center">
-        <span id="room-display"></span>
-      </div>
-      <div class="hud-player blue-hud">
-        <span id="p2-label">ENEMY · BLUE</span>
-        <span class="hud-dot blue-dot"></span>
-      </div>
-    </div>
     <canvas id="game-canvas"></canvas>
+    <div id="countdown-overlay" class="countdown-overlay hidden">
+      <div id="countdown-number">3</div>
+    </div>
     <div id="game-msg" class="game-msg hidden"></div>
   </div>
 
