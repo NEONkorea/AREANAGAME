@@ -477,7 +477,7 @@ function update(now) {
   if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707; }
 
   let speed = BASE_SPEED;
-  if (myClass === 'assassin' && now < speedBoostEnd) speed *= 1.5;
+  if (myClass === 'assassin' && now < speedBoostEnd) speed *= 2.0;
   if (myClass === 'archer'   && isCharging)          speed *= 0.55;
 
   myPos.x += dx * speed;
@@ -492,10 +492,10 @@ function update(now) {
   myPos.y = clamp(myPos.y, GAME_TOP + PLAYER_R + 3, GAME_BOT - PLAYER_R - 3);
 
   // 적 위치 보간 (Lerp + dead-reckoning)
-  const LERP = 0.28;   // 클수록 빠르게 추적, 작을수록 부드러움
+  const LERP = 0.35;   // 클수록 빠르게 추적, 작을수록 부드러움
   // dead-reckoning: 수신 위치에서 속도로 예측 전진
-  const predX = enemyRealPos.x + enemyVel.x * 0.6;
-  const predY = enemyRealPos.y + enemyVel.y * 0.6;
+  const predX = enemyRealPos.x + enemyVel.x * 0.8;
+  const predY = enemyRealPos.y + enemyVel.y * 0.8;
   enemyRenderPos.x += (predX - enemyRenderPos.x) * LERP;
   enemyRenderPos.y += (predY - enemyRenderPos.y) * LERP;
   // 충돌 계산용 enemyPos는 렌더 위치와 동기
@@ -548,7 +548,7 @@ function updateProjs(now) {
 }
 
 function projRadius(type) {
-  return { fireball: 18, dagger: 9, arrow: 7 }[type] || 8;
+  return { fireball: 36, dagger: 18, arrow: 14 }[type] || 14;
 }
 
 // ── DRAW ──────────────────────────────────────────────────────────
@@ -559,11 +559,14 @@ function draw(now) {
   ctx.fillStyle = '#080c14';
   ctx.fillRect(0, GAME_TOP, CANVAS_W, GAME_H);
 
-  // Grid lines
+  // Grid lines (최적화: 단일 path로 일괄 stroke)
+  ctx.shadowBlur = 0;
   ctx.strokeStyle = 'rgba(0,170,255,0.04)';
   ctx.lineWidth = 1;
-  for (let x = 0; x <= CANVAS_W; x += 50) { ctx.beginPath(); ctx.moveTo(x, GAME_TOP); ctx.lineTo(x, GAME_BOT); ctx.stroke(); }
-  for (let y = GAME_TOP; y <= GAME_BOT; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_W, y); ctx.stroke(); }
+  ctx.beginPath();
+  for (let gx = 0; gx <= CANVAS_W; gx += 50) { ctx.moveTo(gx, GAME_TOP); ctx.lineTo(gx, GAME_BOT); }
+  for (let gy = GAME_TOP; gy <= GAME_BOT; gy += 50) { ctx.moveTo(0, gy); ctx.lineTo(CANVAS_W, gy); }
+  ctx.stroke();
 
   // ── Center dividing line (RED, cannot cross)
   ctx.save();
@@ -683,46 +686,48 @@ function drawProjectile(p) {
   const angle = Math.atan2(p.vy, p.vx);
 
   if (p.type === 'fireball') {
-    // 외부 글로우 링
-    ctx.beginPath(); ctx.arc(p.x, p.y, 22, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,80,0,0.18)'; ctx.fill();
-    // 메인 파이어볼 그라디언트
-    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 18);
+    // 외부 글로우 링 (2배)
+    ctx.beginPath(); ctx.arc(p.x, p.y, 44, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,80,0,0.13)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x, p.y, 32, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,100,0,0.18)'; ctx.fill();
+    // 메인 파이어볼 그라디언트 (2배)
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 36);
     g.addColorStop(0, '#fffde0');
-    g.addColorStop(0.3, '#ff9900');
-    g.addColorStop(0.7, '#ff3300');
+    g.addColorStop(0.25, '#ffcc00');
+    g.addColorStop(0.55, '#ff5500');
     g.addColorStop(1, 'rgba(255,40,0,0)');
     ctx.fillStyle = g;
-    ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 24;
-    ctx.beginPath(); ctx.arc(p.x, p.y, 18, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 36;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 36, 0, Math.PI * 2); ctx.fill();
 
   } else if (p.type === 'dagger') {
     ctx.translate(p.x, p.y); ctx.rotate(angle);
-    // 글로우 외곽
-    ctx.strokeStyle = 'rgba(68,255,136,0.3)'; ctx.lineWidth = 8;
-    ctx.shadowColor = '#44ff88'; ctx.shadowBlur = 20;
-    ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(16, 0); ctx.stroke();
-    // 날
-    ctx.strokeStyle = '#ccffee'; ctx.lineWidth = 4;
-    ctx.shadowBlur = 14;
-    ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(16, 0); ctx.stroke();
-    // 팁
+    // 글로우 외곽 (2배)
+    ctx.strokeStyle = 'rgba(68,255,136,0.25)'; ctx.lineWidth = 16;
+    ctx.shadowColor = '#44ff88'; ctx.shadowBlur = 30;
+    ctx.beginPath(); ctx.moveTo(-36, 0); ctx.lineTo(32, 0); ctx.stroke();
+    // 날 (2배)
+    ctx.strokeStyle = '#ccffee'; ctx.lineWidth = 8;
+    ctx.shadowBlur = 20;
+    ctx.beginPath(); ctx.moveTo(-36, 0); ctx.lineTo(32, 0); ctx.stroke();
+    // 팁 (2배)
     ctx.fillStyle = '#eeffee';
-    ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(9, -4); ctx.lineTo(9, 4); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(32, 0); ctx.lineTo(18, -8); ctx.lineTo(18, 8); ctx.closePath(); ctx.fill();
 
   } else if (p.type === 'arrow') {
     ctx.translate(p.x, p.y); ctx.rotate(angle);
-    ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 14;
-    // 화살대
-    ctx.strokeStyle = '#ffcc44'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(-20, 0); ctx.lineTo(8, 0); ctx.stroke();
-    // 화살촉
+    ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 22;
+    // 화살대 (2배)
+    ctx.strokeStyle = '#ffcc44'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(-40, 0); ctx.lineTo(16, 0); ctx.stroke();
+    // 화살촉 (2배)
     ctx.fillStyle = '#fff0aa';
-    ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(6, -5.5); ctx.lineTo(6, 5.5); ctx.closePath(); ctx.fill();
-    // 깃털
-    ctx.strokeStyle = 'rgba(255,220,100,0.7)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(-20, -6); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(-20, 6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(28, 0); ctx.lineTo(12, -11); ctx.lineTo(12, 11); ctx.closePath(); ctx.fill();
+    // 깃털 (2배)
+    ctx.strokeStyle = 'rgba(255,220,100,0.75)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-28, 0); ctx.lineTo(-40, -12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-28, 0); ctx.lineTo(-40, 12); ctx.stroke();
   }
 
   ctx.restore();
@@ -731,6 +736,7 @@ function drawProjectile(p) {
 // ── HUD ───────────────────────────────────────────────────────────
 function drawHUD(now) {
   // ── TOP HUD background
+  ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
   ctx.fillStyle = 'rgba(6,10,18,0.96)';
   ctx.fillRect(0, 0, CANVAS_W, HUD_TOP);
   ctx.strokeStyle = 'rgba(255,255,255,0.07)';
