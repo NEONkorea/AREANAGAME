@@ -160,10 +160,20 @@ document.getElementById('btn-cancel-join').addEventListener('click', () => { cle
 
 // ── PEER CONNECTION SETUP ────────────────────────────────────────
 function setupConn() {
-  conn.on('open', () => {
+  // 호스트는 peer.on('connection') 시점에 이미 open 상태일 수 있어서
+  // conn.on('open') 콜백이 발동하지 않는 타이밍 버그 방지
+  const onOpen = () => {
     console.log('P2P connected, isHost:', isHost);
     enterClassSelect();
-  });
+  };
+
+  if (conn.open) {
+    // 이미 열려 있으면 즉시 실행
+    onOpen();
+  } else {
+    conn.on('open', onOpen);
+  }
+
   conn.on('data', handleData);
   conn.on('close', () => {
     if (phase !== 'lobby' && phase !== 'gameover') {
