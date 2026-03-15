@@ -160,18 +160,26 @@ document.getElementById('btn-cancel-join').addEventListener('click', () => { cle
 
 // ── PEER CONNECTION SETUP ────────────────────────────────────────
 function setupConn() {
-  // 호스트는 peer.on('connection') 시점에 이미 open 상태일 수 있어서
-  // conn.on('open') 콜백이 발동하지 않는 타이밍 버그 방지
+  let opened = false;
+
   const onOpen = () => {
+    if (opened) return;   // 중복 호출 방지
+    opened = true;
     console.log('P2P connected, isHost:', isHost);
     enterClassSelect();
   };
 
+  // 호스트: conn 수락 시점에 이미 open인 경우 즉시 실행
   if (conn.open) {
-    // 이미 열려 있으면 즉시 실행
     onOpen();
   } else {
+    // 이벤트 방식 (게스트)
     conn.on('open', onOpen);
+    // 폴백: PeerJS open 이벤트 누락 버그 대응
+    const poll = setInterval(() => {
+      if (conn && conn.open) { clearInterval(poll); onOpen(); }
+    }, 80);
+    setTimeout(() => clearInterval(poll), 10000);
   }
 
   conn.on('data', handleData);
