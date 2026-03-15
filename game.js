@@ -551,7 +551,7 @@ function updateProjs(now) {
 }
 
 function projRadius(type) {
-  return { fireball: 58, dagger: 28, arrow: 20 }[type] || 20;
+  return { fireball: 39, dagger: 19, arrow: 13 }[type] || 13;
 }
 
 // ── DRAW ──────────────────────────────────────────────────────────
@@ -698,12 +698,12 @@ function drawProjectile(p) {
   if (p.type === 'fireball') {
     // 외곽 대형 글로우
     ctx.shadowBlur = 0;
-    ctx.beginPath(); ctx.arc(p.x, p.y, 78, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(p.x, p.y, 52, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(255,60,0,0.08)'; ctx.fill();
-    ctx.beginPath(); ctx.arc(p.x, p.y, 58, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(p.x, p.y, 39, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(255,90,0,0.14)'; ctx.fill();
     // 메인 파이어볼
-    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 62);
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 41);
     g.addColorStop(0,   '#ffffff');
     g.addColorStop(0.15,'#fffde0');
     g.addColorStop(0.35,'#ffcc00');
@@ -711,49 +711,49 @@ function drawProjectile(p) {
     g.addColorStop(1,   'rgba(255,30,0,0)');
     ctx.fillStyle = g;
     ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 50;
-    ctx.beginPath(); ctx.arc(p.x, p.y, 62, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x, p.y, 41, 0, Math.PI * 2); ctx.fill();
 
   } else if (p.type === 'dagger') {
     ctx.translate(p.x, p.y); ctx.rotate(angle);
     // 대형 글로우 외곽
-    ctx.strokeStyle = 'rgba(68,255,136,0.18)'; ctx.lineWidth = 28;
-    ctx.shadowColor = '#44ff88'; ctx.shadowBlur = 45;
-    ctx.beginPath(); ctx.moveTo(-56, 0); ctx.lineTo(54, 0); ctx.stroke();
+    ctx.strokeStyle = 'rgba(68,255,136,0.18)'; ctx.lineWidth = 19;
+    ctx.shadowColor = '#44ff88'; ctx.shadowBlur = 30;
+    ctx.beginPath(); ctx.moveTo(-37, 0); ctx.lineTo(36, 0); ctx.stroke();
     // 날 본체
-    ctx.strokeStyle = '#ddfff0'; ctx.lineWidth = 14;
-    ctx.shadowBlur = 28;
-    ctx.beginPath(); ctx.moveTo(-56, 0); ctx.lineTo(54, 0); ctx.stroke();
+    ctx.strokeStyle = '#ddfff0'; ctx.lineWidth = 9;
+    ctx.shadowBlur = 18;
+    ctx.beginPath(); ctx.moveTo(-37, 0); ctx.lineTo(36, 0); ctx.stroke();
     // 날 중심 하이라이트
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4;
-    ctx.shadowBlur = 10;
-    ctx.beginPath(); ctx.moveTo(-50, 0); ctx.lineTo(48, 0); ctx.stroke();
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+    ctx.shadowBlur = 7;
+    ctx.beginPath(); ctx.moveTo(-33, 0); ctx.lineTo(32, 0); ctx.stroke();
     // 팁
     ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.moveTo(54, 0); ctx.lineTo(36, -14); ctx.lineTo(36, 14); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(36, 0); ctx.lineTo(24, -9); ctx.lineTo(24, 9); ctx.closePath(); ctx.fill();
 
   } else if (p.type === 'arrow') {
     ctx.translate(p.x, p.y); ctx.rotate(angle);
     ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 32;
     // 화살대 글로우
-    ctx.strokeStyle = 'rgba(255,180,0,0.35)'; ctx.lineWidth = 18;
-    ctx.beginPath(); ctx.moveTo(-62, 0); ctx.lineTo(26, 0); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,180,0,0.35)'; ctx.lineWidth = 12;
+    ctx.beginPath(); ctx.moveTo(-41, 0); ctx.lineTo(17, 0); ctx.stroke();
     // 화살대 본체
-    ctx.strokeStyle = '#ffdd55'; ctx.lineWidth = 8;
-    ctx.shadowBlur = 20;
-    ctx.beginPath(); ctx.moveTo(-62, 0); ctx.lineTo(26, 0); ctx.stroke();
+    ctx.strokeStyle = '#ffdd55'; ctx.lineWidth = 5;
+    ctx.shadowBlur = 14;
+    ctx.beginPath(); ctx.moveTo(-41, 0); ctx.lineTo(17, 0); ctx.stroke();
     // 화살대 하이라이트
-    ctx.strokeStyle = '#fffacc'; ctx.lineWidth = 3;
-    ctx.shadowBlur = 5;
-    ctx.beginPath(); ctx.moveTo(-58, 0); ctx.lineTo(20, 0); ctx.stroke();
+    ctx.strokeStyle = '#fffacc'; ctx.lineWidth = 2;
+    ctx.shadowBlur = 4;
+    ctx.beginPath(); ctx.moveTo(-38, 0); ctx.lineTo(13, 0); ctx.stroke();
     // 화살촉
-    ctx.shadowBlur = 20; ctx.shadowColor = '#ffee88';
+    ctx.shadowBlur = 14; ctx.shadowColor = '#ffee88';
     ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.moveTo(46, 0); ctx.lineTo(20, -18); ctx.lineTo(20, 18); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(31, 0); ctx.lineTo(13, -12); ctx.lineTo(13, 12); ctx.closePath(); ctx.fill();
     // 깃털
-    ctx.strokeStyle = 'rgba(255,230,80,0.85)'; ctx.lineWidth = 5;
-    ctx.shadowBlur = 8;
-    ctx.beginPath(); ctx.moveTo(-44, 0); ctx.lineTo(-62, -18); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-44, 0); ctx.lineTo(-62, 18); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,230,80,0.85)'; ctx.lineWidth = 3;
+    ctx.shadowBlur = 5;
+    ctx.beginPath(); ctx.moveTo(-29, 0); ctx.lineTo(-41, -12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-29, 0); ctx.lineTo(-41, 12); ctx.stroke();
   }
 
   ctx.restore();
