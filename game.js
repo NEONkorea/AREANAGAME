@@ -1004,32 +1004,9 @@ function cleanupPeer() {
 
 const isMobile = () => (window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 1024);
 
-// ── 세로/가로 회전 감지 ──────────────────────────────────────
+// ── 회전 안내 제거 — 항상 가로 UI 표시 ──────────────────────
 const rotateNotice = document.getElementById('rotate-notice');
-function checkOrientation() {
-  if (!rotateNotice) return;
-  if (!isMobile()) { rotateNotice.style.display = 'none'; return; }
-
-  let isLandscape;
-  if (screen.orientation && screen.orientation.type) {
-    // 가장 신뢰할 수 있는 API
-    isLandscape = screen.orientation.type.startsWith('landscape');
-  } else if (typeof window.orientation !== 'undefined') {
-    // iOS 구형 폴백
-    isLandscape = Math.abs(window.orientation) === 90;
-  } else {
-    // 최후 폴백
-    isLandscape = window.innerWidth > window.innerHeight;
-  }
-
-  rotateNotice.style.display = isLandscape ? 'none' : 'flex';
-}
-window.addEventListener('resize', checkOrientation);
-window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 150));
-if (screen.orientation) {
-  screen.orientation.addEventListener('change', () => setTimeout(checkOrientation, 150));
-}
-checkOrientation();
+if (rotateNotice) rotateNotice.style.display = 'none';
 
 // ── 조이스틱 상태 ────────────────────────────────────────────
 const mobileInput = {
