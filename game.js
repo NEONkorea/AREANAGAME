@@ -1224,13 +1224,12 @@ function drawAttackArrow(now) {
   if (!arrowCanvas || !arrowCtx || !isMobile()) return;
   if (phase !== 'playing') { arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height); return; }
 
-  // arrowCanvas는 game-screen 전체(inset:0)를 덮음 → 화면 전체 크기로 설정
-  const screenW = window.innerWidth;
-  const screenH = window.innerHeight;
-  if (arrowCanvas.width !== screenW || arrowCanvas.height !== screenH) {
-    arrowCanvas.width  = screenW;
-    arrowCanvas.height = screenH;
-  }
+  // 캔버스 크기를 game-canvas에 맞춤
+  const gcRect = canvas.getBoundingClientRect();
+  const scaleX = CANVAS_W / gcRect.width;
+  const scaleY = CANVAS_H / gcRect.height;
+  arrowCanvas.width  = gcRect.width;
+  arrowCanvas.height = gcRect.height;
 
   arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
 
@@ -1239,15 +1238,10 @@ function drawAttackArrow(now) {
 
   if (!showAttack && !showSpecial) return;
 
-  // game-canvas의 실제 화면상 위치와 크기
-  const gcRect = canvas.getBoundingClientRect();
-  const scaleX = gcRect.width  / CANVAS_W;
-  const scaleY = gcRect.height / CANVAS_H;
-
-  // 플레이어 게임 좌표 → 화면 좌표 (arrowCanvas 기준)
-  const px = gcRect.left + myPos.x * scaleX;
-  const py = gcRect.top  + myPos.y * scaleY;
-  const playerR = PLAYER_R * Math.min(scaleX, scaleY);
+  // 플레이어 위치를 화면 좌표로 변환
+  const px = myPos.x / scaleX;
+  const py = myPos.y / scaleY;
+  const playerR = PLAYER_R / scaleX;
 
   if (showAttack) {
     const cfg  = myClass ? CLASSES[myClass] : null;
@@ -1360,10 +1354,12 @@ draw = function(now) {
 
 // ── attack-arrow-canvas 위치/크기 동기화 ─────────────────────
 function syncArrowCanvas() {
-  if (!arrowCanvas) return;
-  // arrowCanvas는 #mobile-controls(inset:0) 안에 있어 game-screen 전체를 덮음
-  // CSS로 inset:0, width/height:100%로 처리되므로 별도 style 설정 불필요
-  // drawAttackArrow에서 window.innerWidth/Height로 픽셀 크기 동기화
+  if (!arrowCanvas || !canvas) return;
+  const r = canvas.getBoundingClientRect();
+  arrowCanvas.style.left   = r.left + 'px';
+  arrowCanvas.style.top    = r.top  + 'px';
+  arrowCanvas.style.width  = r.width  + 'px';
+  arrowCanvas.style.height = r.height + 'px';
 }
 window.addEventListener('resize', syncArrowCanvas);
 // game-screen이 표시된 후 동기화
