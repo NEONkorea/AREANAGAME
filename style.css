@@ -470,7 +470,7 @@ html, body {
 .mobile-only { display: none !important; }
 
 @media (pointer: coarse) {
-  .mobile-only { display: flex !important; }
+  .mobile-only { display: flex; }   /* !important 제거 — JS로 덮어쓸 수 있게 */
   .pc-only     { display: none !important; }
 }
 
@@ -480,7 +480,6 @@ html, body {
 @media (pointer: coarse) {
   html, body {
     overflow: hidden;
-    /* touch-action은 조이스틱 영역에만 개별 적용 — body 전체 금지 시 캔버스 렌더링 방해 */
   }
 
   #lobby .lobby-content {
@@ -506,20 +505,6 @@ html, body {
     width: 42px; height: 52px;
     font-size: 26px;
   }
-
-  /* 가로 모드 강제 안내 (세로일 때) — 인라인 스타일로 처리, 여기선 애니메이션만 */
-  #rotate-notice .rotate-icon {
-    animation: rotateHint 2s ease-in-out infinite;
-  }
-  #rotate-notice p {
-    font-size: 13px;
-    letter-spacing: 0.2em;
-    color: var(--dim);
-  }
-  @keyframes rotateHint {
-    0%, 100% { transform: rotate(0deg); }
-    50%       { transform: rotate(90deg); }
-  }
 }
 
 /* ────────────────────────────────────────────
@@ -528,14 +513,12 @@ html, body {
 #mobile-controls {
   position: absolute;
   inset: 0;
-  pointer-events: none;  /* 기본은 통과, 조이스틱 영역만 pointer-events: all */
+  pointer-events: none;
   z-index: 5;
   display: none;
-  /* 캔버스 위에 float하되 레이아웃에 영향 없음 */
-  overflow: hidden;
 }
 
-@media (pointer: coarse) {
+@media (pointer: coarse), (max-width: 1024px) {
   #mobile-controls {
     display: block;
   }
@@ -554,7 +537,6 @@ html, body {
   position: absolute;
   bottom: 0;
   pointer-events: all;
-  touch-action: none;   /* 조이스틱 영역만 스크롤/줌 방지 */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -766,7 +748,8 @@ html, body {
 /* ────────────────────────────────────────────
    MOBILE CLASS SELECT — 가로 최적화
 ──────────────────────────────────────────── */
-@media (pointer: coarse) and (orientation: landscape) {
+@media (pointer: coarse) and (orientation: landscape),
+       (max-width: 1024px) and (orientation: landscape) {
 
   .class-content {
     gap: 14px;
