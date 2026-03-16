@@ -554,35 +554,34 @@ html, body {
     display: block;
   }
 
-  /* 모바일 게임 화면: 캔버스를 상단에, 조이스틱은 하단 */
+  /* 모바일: 게임화면 세로 스택 */
   #game-screen {
     flex-direction: column;
     justify-content: flex-start;
-    align-items: center;
-    background: var(--bg);
+    align-items: stretch;
   }
 
+  /* 캔버스는 상단 고정 높이 — 조이스틱 공간 확보 */
   #game-canvas {
     width: 100vw !important;
-    height: auto !important;
-    max-height: 52vh;        /* 상단 절반에 캔버스(HUD 포함) */
+    height: 50vw !important;   /* 16:9 비율 유지하면서 상단 절반 */
+    max-height: 55vh;
     max-width: 100vw;
+    object-fit: contain;
     flex-shrink: 0;
   }
 
-  /* 조이스틱 존은 캔버스 아래 영역 전체 */
-  #mobile-controls {
-    position: relative;
-    width: 100vw;
-    flex: 1;
-    min-height: 0;
+  /* 조이스틱 존: 캔버스 아래쪽 절반에만 제한 */
+  .joystick-zone.left-zone {
+    top: auto;
+    bottom: 0;
+    height: 48vh;
   }
 
-  .joystick-zone.left-zone,
   .joystick-zone.right-zone {
-    position: absolute;
-    height: 100%;
-    padding-bottom: 12px;
+    top: auto;
+    bottom: 0;
+    height: 48vh;
   }
 }
 
