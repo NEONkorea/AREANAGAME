@@ -411,6 +411,9 @@ html, body {
 
 #game-canvas {
   display: block;
+  /* 16:9 비율 유지하며 화면을 최대한 채움 */
+  width: min(100vw, 177.78vh);   /* 100vh * (16/9) */
+  height: min(100vh, 56.25vw);   /* 100vw * (9/16) */
   max-width: 100vw;
   max-height: 100vh;
   cursor: crosshair;
@@ -564,8 +567,8 @@ html, body {
   /* 캔버스는 상단 고정 높이 — 조이스틱 공간 확보 */
   #game-canvas {
     width: 100vw !important;
-    height: 50vw !important;   /* 16:9 비율 유지하면서 상단 절반 */
-    max-height: 55vh;
+    height: 56.25vw !important;  /* 16:9 정확한 비율 */
+    max-height: 62vh;            /* 조이스틱 공간 확보 */
     max-width: 100vw;
     object-fit: contain;
     flex-shrink: 0;
