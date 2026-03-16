@@ -118,17 +118,7 @@ document.getElementById('btn-create').addEventListener('click', () => {
   roomCode.split('').forEach((ch, i) => spans[i].textContent = ch);
   mainButtons.classList.add('hidden');
   createSection.classList.remove('hidden');
-  peer = new Peer(PEER_PREFIX + roomCode, {
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun.cloudflare.com:3478' },
-        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
-      ]
-    }
-  });
+  peer = new Peer(PEER_PREFIX + roomCode);
   peer.on('open', () => {});
   peer.on('connection', c => { conn = c; setupConn(); });
   peer.on('error', err => { alert('연결 오류: ' + err.type); resetToLobby(); });
@@ -165,17 +155,7 @@ function tryJoin() {
   if (code.length !== 4) { setJoinStatus('4자리를 모두 입력하세요', 'error'); return; }
   isHost = false; roomCode = code;
   setJoinStatus('연결 중…', '');
-  peer = new Peer(undefined, {
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun.cloudflare.com:3478' },
-        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
-      ]
-    }
-  });
+  peer = new Peer();
   peer.on('open', () => {
     conn = peer.connect(PEER_PREFIX + code, { reliable: true });
     setupConn();
@@ -1016,6 +996,384 @@ function cleanupPeer() {
   document.removeEventListener('keydown', onKeyDown);
   document.removeEventListener('keyup',   onKeyUp);
 }
+
+
+// ══════════════════════════════════════════════════════════════
+//   MOBILE JOYSTICK SYSTEM
+// ══════════════════════════════════════════════════════════════
+
+const isMobile = () => (window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 1024);
+
+// ── 세로/가로 회전 감지 ──────────────────────────────────────
+const rotateNotice = document.getElementById('rotate-notice');
+function checkOrientation() {
+  if (!isMobile() || !rotateNotice) return;
+  const isLandscape = window.innerWidth > window.innerHeight;
+  rotateNotice.style.display = isLandscape ? 'none' : 'flex';
+}
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 100));
+checkOrientation();
+
+// ── 조이스틱 상태 ────────────────────────────────────────────
+const mobileInput = {
+  moveX: 0, moveY: 0,          // 이동 조이스틱 (-1~1)
+  attackActive: false,          // 일반공격 조이스틱 드래그 중
+  attackX: 0, attackY: 0,      // 일반공격 방향 (-1~1)
+  specialActive: false,
+  specialX: 0, specialY: 0,
+};
+
+// ── DOM refs ─────────────────────────────────────────────────
+const arrowCanvas    = document.getElementById('attack-arrow-canvas');
+const arrowCtx       = arrowCanvas ? arrowCanvas.getContext('2d') : null;
+
+const moveBase       = document.getElementById('move-joystick-base');
+const moveKnob       = document.getElementById('move-joystick-knob');
+const attackBase     = document.getElementById('attack-joystick-base');
+const attackKnob     = document.getElementById('attack-joystick-knob');
+const specialBase    = document.getElementById('special-joystick-base');
+const specialKnob    = document.getElementById('special-joystick-knob');
+
+const normalCDRing   = document.getElementById('normal-cd-ring');
+const normalCDText   = document.getElementById('normal-cd-text');
+const specialCDRing  = document.getElementById('special-cd-ring');
+const specialCDText  = document.getElementById('special-cd-text');
+const attackIcon     = document.getElementById('attack-joystick-icon');
+const specialIcon    = document.getElementById('special-joystick-icon');
+
+// ── 조이스틱 헬퍼 ────────────────────────────────────────────
+function makeJoystick(base, knob, maxRadius, onMove, onRelease) {
+  if (!base || !knob) return;
+  let touchId = null;
+  let originX = 0, originY = 0;
+
+  function getCenter() {
+    const r = base.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+
+  function applyKnob(dx, dy) {
+    const dist = Math.hypot(dx, dy);
+    const clampedDist = Math.min(dist, maxRadius);
+    const angle = Math.atan2(dy, dx);
+    const kx = Math.cos(angle) * clampedDist;
+    const ky = Math.sin(angle) * clampedDist;
+    knob.style.transform = `translate(${kx}px, ${ky}px)`;
+    const nx = dist > 8 ? dx / dist : 0;
+    const ny = dist > 8 ? dy / dist : 0;
+    onMove(nx, ny, dist);
+  }
+
+  function resetKnob() {
+    knob.style.transform = 'translate(0px, 0px)';
+    onRelease();
+  }
+
+  base.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (touchId !== null) return;
+    const t = e.changedTouches[0];
+    touchId = t.identifier;
+    const c = getCenter();
+    originX = c.x; originY = c.y;
+    applyKnob(t.clientX - originX, t.clientY - originY);
+  }, { passive: false });
+
+  document.addEventListener('touchmove', e => {
+    if (touchId === null) return;
+    for (const t of e.changedTouches) {
+      if (t.identifier !== touchId) continue;
+      applyKnob(t.clientX - originX, t.clientY - originY);
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', e => {
+    for (const t of e.changedTouches) {
+      if (t.identifier !== touchId) continue;
+      touchId = null;
+      resetKnob();
+    }
+  });
+  document.addEventListener('touchcancel', e => {
+    for (const t of e.changedTouches) {
+      if (t.identifier !== touchId) continue;
+      touchId = null;
+      resetKnob();
+    }
+  });
+}
+
+// ── 이동 조이스틱 초기화 ──────────────────────────────────────
+if (moveBase && moveKnob) {
+  makeJoystick(moveBase, moveKnob, 33, (nx, ny) => {
+    mobileInput.moveX = nx;
+    mobileInput.moveY = ny;
+  }, () => {
+    mobileInput.moveX = 0;
+    mobileInput.moveY = 0;
+  });
+}
+
+// ── 일반공격 조이스틱 초기화 ─────────────────────────────────
+if (attackBase && attackKnob) {
+  makeJoystick(attackBase, attackKnob, 30, (nx, ny, dist) => {
+    mobileInput.attackActive = dist > 10;
+    mobileInput.attackX = nx;
+    mobileInput.attackY = ny;
+    // Archer: 드래그 중이면 charge 시작
+    if (dist > 10 && myClass === 'archer' && phase === 'playing') {
+      const now = performance.now();
+      if (!isCharging && now >= normalCDEnd) {
+        isCharging = true;
+        chargeStart = now;
+      }
+    }
+  }, () => {
+    // 손 뗄 때 공격 발사
+    if (mobileInput.attackActive && phase === 'playing') {
+      const now = performance.now();
+      // 마우스 좌표를 조이스틱 방향으로 가상 설정
+      mouseX = myPos.x + mobileInput.attackX * 300;
+      mouseY = myPos.y + mobileInput.attackY * 300;
+      if (myClass === 'archer' && isCharging) {
+        isCharging = false;
+        tryFireNormal(now, true);
+      } else {
+        tryFireNormal(now);
+      }
+    }
+    mobileInput.attackActive = false;
+    mobileInput.attackX = 0;
+    mobileInput.attackY = 0;
+    isCharging = false;
+  });
+}
+
+// ── 특수공격 조이스틱 초기화 ─────────────────────────────────
+if (specialBase && specialKnob) {
+  makeJoystick(specialBase, specialKnob, 22, (nx, ny, dist) => {
+    mobileInput.specialActive = dist > 8;
+    mobileInput.specialX = nx;
+    mobileInput.specialY = ny;
+  }, () => {
+    if (mobileInput.specialActive && phase === 'playing') {
+      const now = performance.now();
+      mouseX = myPos.x + mobileInput.specialX * 300;
+      mouseY = myPos.y + mobileInput.specialY * 300;
+      trySpecial(now);
+    }
+    mobileInput.specialActive = false;
+    mobileInput.specialX = 0;
+    mobileInput.specialY = 0;
+  });
+}
+
+// ── 모바일 이동을 update()에 연결 ────────────────────────────
+// update() 내부의 키보드 이동 대신 조이스틱 이동을 합산
+const _originalUpdate = update;
+update = function(now) {
+  if (isMobile() && phase === 'playing') {
+    // 조이스틱 이동 값을 keys 대신 직접 myPos에 적용
+    let dx = mobileInput.moveX;
+    let dy = mobileInput.moveY;
+
+    let speed = BASE_SPEED;
+    if (myClass === 'assassin' && now < speedBoostEnd) speed *= 2.0;
+    if (myClass === 'archer' && isCharging)             speed *= 0.55;
+
+    myPos.x += dx * speed;
+    myPos.y += dy * speed;
+
+    // 경계
+    if (isHost) {
+      myPos.x = clamp(myPos.x, PLAYER_R + 6, CENTER_X - PLAYER_R - 8);
+    } else {
+      myPos.x = clamp(myPos.x, CENTER_X + PLAYER_R + 8, CANVAS_W - PLAYER_R - 6);
+    }
+    myPos.y = clamp(myPos.y, GAME_TOP + PLAYER_R + 3, GAME_BOT - PLAYER_R - 3);
+
+    // 적 보간
+    const LERP = 0.35;
+    const predX = enemyRealPos.x + enemyVel.x * 0.8;
+    const predY = enemyRealPos.y + enemyVel.y * 0.8;
+    enemyRenderPos.x += (predX - enemyRenderPos.x) * LERP;
+    enemyRenderPos.y += (predY - enemyRenderPos.y) * LERP;
+    enemyPos.x = enemyRenderPos.x;
+    enemyPos.y = enemyRenderPos.y;
+
+    updateProjs(now);
+
+    // 공격 방향 마우스 좌표 실시간 반영 (드래그 중)
+    if (mobileInput.attackActive) {
+      mouseX = myPos.x + mobileInput.attackX * 300;
+      mouseY = myPos.y + mobileInput.attackY * 300;
+    }
+
+    if (conn && conn.open && now - lastSendTime > SEND_RATE) {
+      conn.send({ type: 'pos', x: myPos.x, y: myPos.y, vx: dx * speed, vy: dy * speed });
+      lastSendTime = now;
+    }
+  } else {
+    _originalUpdate(now);
+  }
+};
+
+// ── 공격 방향 화살표 그리기 ──────────────────────────────────
+function drawAttackArrow(now) {
+  if (!arrowCanvas || !arrowCtx || !isMobile()) return;
+  if (phase !== 'playing') { arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height); return; }
+
+  // 캔버스 크기를 game-canvas에 맞춤
+  const gcRect = canvas.getBoundingClientRect();
+  const scaleX = CANVAS_W / gcRect.width;
+  const scaleY = CANVAS_H / gcRect.height;
+  arrowCanvas.width  = gcRect.width;
+  arrowCanvas.height = gcRect.height;
+
+  arrowCtx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
+
+  const showAttack  = mobileInput.attackActive  && (mobileInput.attackX !== 0 || mobileInput.attackY !== 0);
+  const showSpecial = mobileInput.specialActive && (mobileInput.specialX !== 0 || mobileInput.specialY !== 0);
+
+  if (!showAttack && !showSpecial) return;
+
+  // 플레이어 위치를 화면 좌표로 변환
+  const px = myPos.x / scaleX;
+  const py = myPos.y / scaleY;
+  const playerR = PLAYER_R / scaleX;
+
+  if (showAttack) {
+    const cfg  = myClass ? CLASSES[myClass] : null;
+    const color = cfg ? cfg.color : '#ff4466';
+    const nCD  = normalCDEnd === 0 ? 1 : Math.min(1, (now - (normalCDEnd - (cfg ? cfg.normalCD : 1))) / (cfg ? cfg.normalCD : 1));
+    const ready = nCD >= 1;
+    drawDirectionArrow(arrowCtx, px, py, playerR, mobileInput.attackX, mobileInput.attackY, color, ready, 1.0);
+  }
+  if (showSpecial) {
+    const cfg  = myClass ? CLASSES[myClass] : null;
+    const color = '#c864ff';
+    const sCD  = specialCDEnd === 0 ? 1 : Math.min(1, (now - (specialCDEnd - (cfg ? cfg.specialCD : 1))) / (cfg ? cfg.specialCD : 1));
+    const ready = sCD >= 1;
+    drawDirectionArrow(arrowCtx, px, py, playerR, mobileInput.specialX, mobileInput.specialY, color, ready, 0.65);
+  }
+}
+
+function drawDirectionArrow(ctx2, px, py, pr, nx, ny, color, ready, alpha) {
+  const angle   = Math.atan2(ny, nx);
+  const startR  = pr + 8;
+  const arrowLen = 55;
+  const dashLen  = 14, dashGap = 7;
+
+  ctx2.save();
+  ctx2.globalAlpha = ready ? alpha : alpha * 0.4;
+  ctx2.strokeStyle = color;
+  ctx2.shadowColor = color;
+  ctx2.shadowBlur  = 12;
+  ctx2.lineWidth   = 2.5;
+  ctx2.setLineDash([dashLen, dashGap]);
+  ctx2.lineDashOffset = -(performance.now() / 60 % (dashLen + dashGap));
+
+  // 점선 줄기
+  ctx2.beginPath();
+  ctx2.moveTo(px + Math.cos(angle) * startR, py + Math.sin(angle) * startR);
+  ctx2.lineTo(px + Math.cos(angle) * (startR + arrowLen), py + Math.sin(angle) * (startR + arrowLen));
+  ctx2.stroke();
+
+  // 화살촉
+  ctx2.setLineDash([]);
+  ctx2.shadowBlur = 16;
+  const tipX = px + Math.cos(angle) * (startR + arrowLen);
+  const tipY = py + Math.sin(angle) * (startR + arrowLen);
+  const headLen = 14, headAngle = 0.42;
+  ctx2.beginPath();
+  ctx2.moveTo(tipX, tipY);
+  ctx2.lineTo(tipX - headLen * Math.cos(angle - headAngle), tipY - headLen * Math.sin(angle - headAngle));
+  ctx2.moveTo(tipX, tipY);
+  ctx2.lineTo(tipX - headLen * Math.cos(angle + headAngle), tipY - headLen * Math.sin(angle + headAngle));
+  ctx2.stroke();
+
+  ctx2.restore();
+}
+
+// ── 쿨타임 링/텍스트 업데이트 (매 프레임) ────────────────────
+function updateMobileCD(now) {
+  if (!isMobile() || !myClass) return;
+  const cfg = CLASSES[myClass];
+
+  // 아이콘 업데이트
+  if (attackIcon) attackIcon.textContent = cfg.normalIcon;
+  if (specialIcon) specialIcon.textContent = cfg.specialIcon;
+
+  // 일반공격 CD 링
+  if (normalCDRing) {
+    const nPct = normalCDEnd === 0 ? 1 : Math.min(1, (now - (normalCDEnd - cfg.normalCD)) / cfg.normalCD);
+    const r = 49;
+    const circ = 2 * Math.PI * r;
+    normalCDRing.style.strokeDasharray  = circ;
+    normalCDRing.style.strokeDashoffset = circ * (1 - nPct);
+    if (attackBase) attackBase.classList.toggle('on-cooldown', nPct < 1);
+    if (normalCDText) {
+      if (nPct < 1) {
+        const rem = ((1 - nPct) * cfg.normalCD / 1000).toFixed(1);
+        normalCDText.textContent = rem;
+      } else {
+        normalCDText.textContent = '';
+      }
+    }
+  }
+
+  // 특수공격 CD 링
+  if (specialCDRing) {
+    const sPct = specialCDEnd === 0 ? 1 : Math.min(1, (now - (specialCDEnd - cfg.specialCD)) / cfg.specialCD);
+    const r = 36;
+    const circ = 2 * Math.PI * r;
+    specialCDRing.style.strokeDasharray  = circ;
+    specialCDRing.style.strokeDashoffset = circ * (1 - sPct);
+    if (specialBase) specialBase.classList.toggle('on-cooldown', sPct < 1);
+    if (specialCDText) {
+      if (sPct < 1) {
+        const rem = ((1 - sPct) * cfg.specialCD / 1000).toFixed(1);
+        specialCDText.textContent = rem;
+      } else {
+        specialCDText.textContent = '';
+      }
+    }
+  }
+}
+
+// ── draw() 훅: 화살표 + CD링을 매 프레임 갱신 ────────────────
+const _originalDraw = draw;
+draw = function(now) {
+  _originalDraw(now);
+  if (isMobile()) {
+    drawAttackArrow(now);
+    updateMobileCD(now);
+  }
+};
+
+// ── attack-arrow-canvas 위치/크기 동기화 ─────────────────────
+function syncArrowCanvas() {
+  if (!arrowCanvas || !canvas) return;
+  const r = canvas.getBoundingClientRect();
+  arrowCanvas.style.left   = r.left + 'px';
+  arrowCanvas.style.top    = r.top  + 'px';
+  arrowCanvas.style.width  = r.width  + 'px';
+  arrowCanvas.style.height = r.height + 'px';
+}
+window.addEventListener('resize', syncArrowCanvas);
+// game-screen이 표시된 후 동기화
+const _origBeginPlaying = beginPlaying;
+beginPlaying = function() {
+  _origBeginPlaying();
+  setTimeout(syncArrowCanvas, 100);
+  // 모바일 touchstart로 오른쪽 클릭 방지
+  if (isMobile()) {
+    canvas.removeEventListener('mousedown',   onMouseDown);
+    canvas.removeEventListener('mouseup',     onMouseUp);
+    canvas.removeEventListener('mousemove',   onMouseMove);
+  }
+};
 
 function resetToLobby() {
   myClass = null; enemyClass = null;
