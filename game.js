@@ -1004,17 +1004,6 @@ function cleanupPeer() {
 
 const isMobile = () => (window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 1024);
 
-// ── 세로/가로 회전 감지 ──────────────────────────────────────
-const rotateNotice = document.getElementById('rotate-notice');
-function checkOrientation() {
-  if (!isMobile() || !rotateNotice) return;
-  const isLandscape = window.innerWidth > window.innerHeight;
-  rotateNotice.style.display = isLandscape ? 'none' : 'flex';
-}
-window.addEventListener('resize', checkOrientation);
-window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 100));
-checkOrientation();
-
 // ── 조이스틱 상태 ────────────────────────────────────────────
 const mobileInput = {
   moveX: 0, moveY: 0,          // 이동 조이스틱 (-1~1)
