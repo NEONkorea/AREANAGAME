@@ -23,20 +23,20 @@ const PEER_PREFIX = 'arena1v1-';
 // ── CLASS CONFIG ────────────────────────────────────────────────
 const CLASSES = {
   magician: {
-    name: '매지션', icon: '🔮', color: '#c864ff',
-    normalCD: 1800, specialCD: 50000,
+    name: '매지션', icon: '🔮', color: '#ff2244',
+    normalCD: Math.round(1800 / 1.3), specialCD: 50000,
     normalLabel: '화염볼', specialLabel: '회복',
     normalIcon: '🔥', specialIcon: '💚'
   },
   assassin: {
-    name: '어쌔신', icon: '🗡️', color: '#44ff88',
-    normalCD: 2300, specialCD: 20000,
+    name: '어쌔신', icon: '🗡️', color: '#ff2244',
+    normalCD: Math.round(2300 / 1.3), specialCD: 20000,
     normalLabel: '단검', specialLabel: '속도 UP',
     normalIcon: '⚡', specialIcon: '💨'
   },
   archer: {
-    name: '아처', icon: '🏹', color: '#ffaa00',
-    normalCD: 2000, specialCD: 20000,
+    name: '아처', icon: '🏹', color: '#ff2244',
+    normalCD: Math.round(2000 / 1.3), specialCD: 20000,
     normalLabel: '화살', specialLabel: '속사',
     normalIcon: '🎯', specialIcon: '🔀'
   }
@@ -551,7 +551,7 @@ function updateProjs(now) {
 }
 
 function projRadius(type) {
-  return { fireball: 19, dagger: 9, arrow: 6 }[type] || 9;
+  return { fireball: 9, dagger: 9, arrow: 6 }[type] || 9;  // fireball: 19→9 (0.5배)
 }
 
 // ── DRAW ──────────────────────────────────────────────────────────
@@ -641,7 +641,7 @@ function draw(now) {
 
 function drawPlayer(x, y, cls, isMe, now) {
   const cfg = cls ? CLASSES[cls] : null;
-  const color = cfg ? cfg.color : (isMe ? (isHost ? '#ff2244' : '#00aaff') : (isHost ? '#00aaff' : '#ff2244'));
+  const color = isMe ? getMyColor() : getEnemyColor();
 
   ctx.save();
   ctx.shadowColor = color;
@@ -696,22 +696,22 @@ function drawProjectile(p) {
   const angle = Math.atan2(p.vy, p.vx);
 
   if (p.type === 'fireball') {
-    // 외곽 대형 글로우
+    // 외곽 대형 글로우 (0.5배 축소)
     ctx.shadowBlur = 0;
-    ctx.beginPath(); ctx.arc(p.x, p.y, 26, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(p.x, p.y, 13, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(255,60,0,0.08)'; ctx.fill();
-    ctx.beginPath(); ctx.arc(p.x, p.y, 19, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(255,90,0,0.14)'; ctx.fill();
     // 메인 파이어볼
-    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 20);
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 10);
     g.addColorStop(0,   '#ffffff');
     g.addColorStop(0.15,'#fffde0');
     g.addColorStop(0.35,'#ffcc00');
     g.addColorStop(0.65,'#ff4400');
     g.addColorStop(1,   'rgba(255,30,0,0)');
     ctx.fillStyle = g;
-    ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 50;
-    ctx.beginPath(); ctx.arc(p.x, p.y, 20, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 25;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.fill();
 
   } else if (p.type === 'dagger') {
     ctx.translate(p.x, p.y); ctx.rotate(angle);
@@ -770,8 +770,8 @@ function drawHUD(now) {
   ctx.beginPath(); ctx.moveTo(0, HUD_TOP); ctx.lineTo(CANVAS_W, HUD_TOP); ctx.stroke();
 
   // My HP bar (left)
-  const myColor = myClass ? CLASSES[myClass].color : '#ffffff';
-  const enColor = enemyClass ? CLASSES[enemyClass].color : '#ffffff';
+  const myColor = getMyColor();
+  const enColor = getEnemyColor();
   const myName  = myClass ? CLASSES[myClass].icon + ' ' + CLASSES[myClass].name + '  (나)' : '?';
   const enName  = enemyClass ? CLASSES[enemyClass].icon + ' ' + CLASSES[enemyClass].name + '  (상대)' : '?';
 
@@ -971,8 +971,8 @@ function endGame(iWon) {
 // ── UTILS ─────────────────────────────────────────────────────────
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-function getMyColor()    { return myClass    ? CLASSES[myClass].color    : (isHost ? '#ff2244' : '#00aaff'); }
-function getEnemyColor() { return enemyClass ? CLASSES[enemyClass].color : (isHost ? '#00aaff' : '#ff2244'); }
+function getMyColor()    { return isHost ? '#ff2244' : '#00aaff'; }
+function getEnemyColor() { return isHost ? '#00aaff' : '#ff2244'; }
 
 function addHitEffect(x, y, color, dur) {
   hitEffects.push({ x, y, color, dur, t: performance.now() });
@@ -1004,9 +1004,16 @@ function cleanupPeer() {
 
 const isMobile = () => (window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 1024);
 
-// ── 회전 안내 제거 — 항상 가로 UI 표시 ──────────────────────
+// ── 세로/가로 회전 감지 ──────────────────────────────────────
 const rotateNotice = document.getElementById('rotate-notice');
-if (rotateNotice) rotateNotice.style.display = 'none';
+function checkOrientation() {
+  if (!isMobile() || !rotateNotice) return;
+  const isLandscape = window.innerWidth > window.innerHeight;
+  rotateNotice.style.display = isLandscape ? 'none' : 'flex';
+}
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 100));
+checkOrientation();
 
 // ── 조이스틱 상태 ────────────────────────────────────────────
 const mobileInput = {
