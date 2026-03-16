@@ -1,465 +1,241 @@
-/* ────────────────────────────────────────────
-   RESET & BASE
-──────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1v1 ARENA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-:root {
-  --red:    #ff2244;
-  --blue:   #00aaff;
-  --bg:     #080c14;
-  --surface:#0d1520;
-  --border: rgba(255,255,255,0.08);
-  --text:   #c8d8f0;
-  --dim:    rgba(200,216,240,0.4);
-  --col-magician: #c864ff;
-  --col-assassin: #44ff88;
-  --col-archer:   #ffaa00;
-  --font-display: 'Orbitron', monospace;
-  --font-body:    'Rajdhani', sans-serif;
-}
+  <!-- ── ROTATE NOTICE (모바일 세로 모드) — body 최상단에 fixed로 띄움 ── -->
+  <div id="rotate-notice" class="mobile-only" style="position:fixed;inset:0;z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg);text-align:center;padding:24px;">
+    <div class="rotate-icon" style="font-size:52px;">📱</div>
+    <div style="font-family:'Orbitron',monospace;font-size:16px;letter-spacing:0.2em;color:#fff">가로 모드로 회전하세요</div>
+    <p style="font-size:13px;letter-spacing:0.2em;color:rgba(200,216,240,0.4)">ROTATE DEVICE TO LANDSCAPE</p>
+  </div>
 
-html, body {
-  height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-body);
-  overflow: hidden;
-  user-select: none;
-}
+  <!-- ── LOBBY ── -->
+  <div id="lobby">
+    <div class="bg-grid"></div>
+    <div class="scanline"></div>
+    <div class="lobby-content">
+      <div class="title-block">
+        <div class="title-tag">MULTIPLAYER</div>
+        <h1 class="title">1v1<br><span>ARENA</span></h1>
+        <p class="subtitle">실시간 탑뷰 대전 · WASD 이동 · 마우스 공격</p>
+      </div>
+      <div id="main-buttons" class="button-group">
+        <button class="btn btn-red" id="btn-create">
+          <span class="btn-icon">⊕</span>
+          <span class="btn-text">방 만들기</span>
+          <span class="btn-sub">CREATE ROOM</span>
+        </button>
+        <button class="btn btn-blue" id="btn-join">
+          <span class="btn-icon">⊞</span>
+          <span class="btn-text">방 참여하기</span>
+          <span class="btn-sub">JOIN ROOM</span>
+        </button>
+      </div>
+      <div id="create-section" class="panel hidden">
+        <div class="panel-label">ROOM CREATED</div>
+        <div class="code-display">
+          <span class="code-label">방 코드</span>
+          <div class="code-digits" id="room-code">
+            <span>-</span><span>-</span><span>-</span><span>-</span>
+          </div>
+        </div>
+        <div class="waiting">
+          <div class="pulse-dot"></div>
+          <span>상대방을 기다리는 중…</span>
+        </div>
+        <button class="btn-small" id="btn-cancel-create">취소</button>
+      </div>
+      <div id="join-section" class="panel hidden">
+        <div class="panel-label">ENTER CODE</div>
+        <div class="digit-inputs">
+          <input class="digit" id="d0" type="text" maxlength="1" inputmode="numeric">
+          <input class="digit" id="d1" type="text" maxlength="1" inputmode="numeric">
+          <input class="digit" id="d2" type="text" maxlength="1" inputmode="numeric">
+          <input class="digit" id="d3" type="text" maxlength="1" inputmode="numeric">
+        </div>
+        <div id="join-status" class="join-status"></div>
+        <div class="join-buttons">
+          <button class="btn btn-blue" id="btn-enter">입 장</button>
+          <button class="btn-small" id="btn-cancel-join">취소</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-.hidden { display: none !important; }
+  <!-- ── CLASS SELECT ── -->
+  <div id="class-screen" class="hidden">
+    <div class="bg-grid"></div>
+    <div class="scanline"></div>
+    <div class="class-content">
+      <div class="class-header">
+        <div class="class-title-tag">PHASE 1 — CHARACTER SELECT</div>
+        <h2 class="class-title">직업 선택</h2>
+        <div id="class-opponent-status" class="opp-status">
+          <span class="pulse-dot"></span>상대방 선택 대기 중…
+        </div>
+      </div>
 
-/* ────────────────────────────────────────────
-   SHARED BACKGROUND
-──────────────────────────────────────────── */
-.bg-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(0,170,255,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,170,255,0.04) 1px, transparent 1px);
-  background-size: 50px 50px;
-  animation: gridShift 20s linear infinite;
-  pointer-events: none;
-}
-@keyframes gridShift {
-  from { transform: translateY(0); }
-  to   { transform: translateY(50px); }
-}
+      <div class="class-cards">
 
-.scanline {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg, transparent, transparent 2px,
-    rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px
-  );
-  pointer-events: none;
-  z-index: 1;
-}
+        <!-- MAGICIAN -->
+        <div class="class-card" data-class="magician">
+          <div class="card-corner tl"></div>
+          <div class="card-corner tr"></div>
+          <div class="card-icon">🔮</div>
+          <div class="card-name" style="color:#c864ff">매지션</div>
+          <div class="card-flavor">광역 마법 딜러</div>
+          <div class="card-divider"></div>
+          <div class="card-skills">
+            <div class="skill-row">
+              <span class="skill-key lclick">L</span>
+              <div>
+                <div class="skill-name">화염볼 ×3</div>
+                <div class="skill-stat">3방향 · 8dmg · CD 1.8s</div>
+              </div>
+            </div>
+            <div class="skill-row">
+              <span class="skill-key rclick">R</span>
+              <div>
+                <div class="skill-name">체력 회복</div>
+                <div class="skill-stat">+4 HP · CD 50s</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-select-btn">선 택</div>
+        </div>
 
-/* ────────────────────────────────────────────
-   LOBBY
-──────────────────────────────────────────── */
-#lobby {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
+        <!-- ASSASSIN -->
+        <div class="class-card" data-class="assassin">
+          <div class="card-corner tl"></div>
+          <div class="card-corner tr"></div>
+          <div class="card-icon">🗡️</div>
+          <div class="card-name" style="color:#44ff88">어쌔신</div>
+          <div class="card-flavor">고속 단거리 딜러</div>
+          <div class="card-divider"></div>
+          <div class="card-skills">
+            <div class="skill-row">
+              <span class="skill-key lclick">L</span>
+              <div>
+                <div class="skill-name">단검 투척</div>
+                <div class="skill-stat">빠른 속도 · 3dmg · CD 2.3s</div>
+              </div>
+            </div>
+            <div class="skill-row">
+              <span class="skill-key rclick">R</span>
+              <div>
+                <div class="skill-name">속도 부스트</div>
+                <div class="skill-stat">1.5× · 5초 · CD 20s</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-select-btn">선 택</div>
+        </div>
 
-.lobby-content {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 36px;
-  width: min(480px, 92vw);
-}
+        <!-- ARCHER -->
+        <div class="class-card" data-class="archer">
+          <div class="card-corner tl"></div>
+          <div class="card-corner tr"></div>
+          <div class="card-icon">🏹</div>
+          <div class="card-name" style="color:#ffaa00">아처</div>
+          <div class="card-flavor">차징 원거리 딜러</div>
+          <div class="card-divider"></div>
+          <div class="card-skills">
+            <div class="skill-row">
+              <span class="skill-key lclick">L</span>
+              <div>
+                <div class="skill-name">차징 화살</div>
+                <div class="skill-stat">홀드 차징 · 2~6.5dmg · CD 2s</div>
+              </div>
+            </div>
+            <div class="skill-row">
+              <span class="skill-key rclick">R</span>
+              <div>
+                <div class="skill-name">속사 모드</div>
+                <div class="skill-stat">3초간 연발 · CD 20s</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-select-btn">선 택</div>
+        </div>
 
-.title-block { text-align: center; }
+      </div>
 
-.title-tag {
-  font-family: var(--font-display);
-  font-size: 11px;
-  letter-spacing: 0.3em;
-  color: var(--blue);
-  opacity: 0.7;
-  margin-bottom: 8px;
-}
+      <div id="class-status-bar" class="class-status-bar hidden">
+        ✓ 직업 선택 완료 — 상대방을 기다리는 중…
+      </div>
+    </div>
+  </div>
 
-.title {
-  font-family: var(--font-display);
-  font-size: clamp(52px, 12vw, 80px);
-  font-weight: 900;
-  line-height: 0.9;
-  color: #fff;
-  text-shadow: 0 0 40px rgba(0,170,255,0.3);
-}
-.title span {
-  color: var(--blue);
-  text-shadow: 0 0 30px var(--blue), 0 0 60px rgba(0,170,255,0.4);
-}
+  <!-- ── GAME ── -->
+  <div id="game-screen" class="hidden">
+    <canvas id="game-canvas"></canvas>
 
-.subtitle {
-  margin-top: 14px;
-  font-size: 13px;
-  letter-spacing: 0.12em;
-  color: var(--dim);
-}
+    <!-- 모바일 컨트롤 오버레이 -->
+    <div id="mobile-controls" class="mobile-only">
+      <!-- 공격 방향 화살표 캔버스 -->
+      <canvas id="attack-arrow-canvas"></canvas>
 
-.button-group { display: flex; gap: 16px; width: 100%; }
+      <!-- 왼쪽: 이동 조이스틱 -->
+      <div class="joystick-zone left-zone">
+        <div class="joystick-wrap move-joystick" id="move-joystick-wrap">
+          <div class="joystick-base" id="move-joystick-base">
+            <div class="joystick-knob" id="move-joystick-knob"></div>
+          </div>
+        </div>
+        <div class="joystick-label">MOVE</div>
+      </div>
 
-.btn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 20px 16px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  cursor: pointer;
-  font-family: var(--font-display);
-  transition: all 0.2s;
-  position: relative;
-  overflow: hidden;
-  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-}
-.btn::before {
-  content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.2s;
-}
-.btn:hover::before { opacity: 1; }
+      <!-- 오른쪽: 특수공격(위) + 일반공격(아래) 조이스틱 -->
+      <div class="joystick-zone right-zone">
+        <!-- 특수 공격 조이스틱 (작게, 위) -->
+        <div class="joystick-wrap special-joystick" id="special-joystick-wrap">
+          <div class="joystick-base" id="special-joystick-base">
+            <div class="cd-ring-wrap">
+              <svg class="cd-ring-svg" id="special-cd-svg" viewBox="0 0 80 80">
+                <circle class="cd-ring-track" cx="40" cy="40" r="36"/>
+                <circle class="cd-ring-fill" id="special-cd-ring" cx="40" cy="40" r="36"/>
+              </svg>
+            </div>
+            <div class="joystick-icon" id="special-joystick-icon">💚</div>
+            <div class="cd-text" id="special-cd-text"></div>
+            <div class="joystick-knob" id="special-joystick-knob"></div>
+          </div>
+        </div>
+        <div class="joystick-label">SPECIAL</div>
 
-.btn-red  { border-color: rgba(255,34,68,0.3); color: var(--red); }
-.btn-red::before  { background: rgba(255,34,68,0.06); }
-.btn-red:hover    { border-color: var(--red); box-shadow: 0 0 20px rgba(255,34,68,0.25); }
+        <!-- 일반 공격 조이스틱 (크게, 아래) -->
+        <div class="joystick-wrap attack-joystick" id="attack-joystick-wrap">
+          <div class="joystick-base" id="attack-joystick-base">
+            <div class="cd-ring-wrap">
+              <svg class="cd-ring-svg" id="normal-cd-svg" viewBox="0 0 108 108">
+                <circle class="cd-ring-track" cx="54" cy="54" r="49"/>
+                <circle class="cd-ring-fill" id="normal-cd-ring" cx="54" cy="54" r="49"/>
+              </svg>
+            </div>
+            <div class="joystick-icon" id="attack-joystick-icon">🔥</div>
+            <div class="cd-text" id="normal-cd-text"></div>
+            <div class="joystick-knob" id="attack-joystick-knob"></div>
+          </div>
+        </div>
+        <div class="joystick-label">ATTACK</div>
+      </div>
+    </div>
 
-.btn-blue { border-color: rgba(0,170,255,0.3); color: var(--blue); }
-.btn-blue::before { background: rgba(0,170,255,0.06); }
-.btn-blue:hover   { border-color: var(--blue); box-shadow: 0 0 20px rgba(0,170,255,0.25); }
+    <div id="countdown-overlay" class="countdown-overlay hidden">
+      <div id="countdown-number">3</div>
+    </div>
+    <div id="game-msg" class="game-msg hidden"></div>
+  </div>
 
-.btn-icon { font-size: 24px; line-height: 1; }
-.btn-text { font-size: 15px; font-weight: 700; letter-spacing: 0.05em; }
-.btn-sub  { font-size: 10px; letter-spacing: 0.2em; opacity: 0.5; }
-
-.btn-small {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--dim);
-  font-family: var(--font-display);
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  padding: 8px 20px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.btn-small:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
-
-.panel {
-  width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  padding: 28px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
-}
-
-.panel-label { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.3em; color: var(--dim); align-self: flex-start; }
-
-.code-display { text-align: center; }
-.code-label { display: block; font-size: 12px; letter-spacing: 0.2em; color: var(--dim); margin-bottom: 8px; }
-.code-digits { display: flex; gap: 8px; justify-content: center; }
-.code-digits span {
-  width: 52px; height: 64px;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-display); font-size: 36px; font-weight: 900;
-  color: var(--blue);
-  background: rgba(0,170,255,0.06);
-  border: 1px solid rgba(0,170,255,0.3);
-  text-shadow: 0 0 20px var(--blue);
-}
-
-.waiting { display: flex; align-items: center; gap: 10px; font-size: 13px; letter-spacing: 0.1em; color: var(--dim); }
-
-.pulse-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--blue);
-  animation: pulse 1.2s ease-in-out infinite;
-  flex-shrink: 0;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.3; transform: scale(0.6); }
-}
-
-.digit-inputs { display: flex; gap: 10px; }
-.digit {
-  width: 52px; height: 64px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  color: var(--text); font-family: var(--font-display);
-  font-size: 32px; font-weight: 700; text-align: center; outline: none;
-  transition: all 0.2s;
-}
-.digit:focus { border-color: var(--blue); background: rgba(0,170,255,0.05); box-shadow: 0 0 15px rgba(0,170,255,0.2); color: var(--blue); }
-.digit.filled { border-color: rgba(0,170,255,0.4); color: var(--blue); }
-
-.join-status { font-size: 12px; letter-spacing: 0.1em; color: var(--dim); min-height: 18px; text-align: center; }
-.join-status.error   { color: var(--red); }
-.join-status.success { color: #4f8; }
-
-.join-buttons { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
-.join-buttons .btn { width: 100%; }
-
-/* ────────────────────────────────────────────
-   CLASS SELECT
-──────────────────────────────────────────── */
-#class-screen {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.class-content {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 28px;
-  width: min(900px, 96vw);
-  padding: 20px;
-}
-
-.class-header { text-align: center; }
-
-.class-title-tag {
-  font-family: var(--font-display);
-  font-size: 10px;
-  letter-spacing: 0.35em;
-  color: var(--dim);
-  margin-bottom: 6px;
-}
-
-.class-title {
-  font-family: var(--font-display);
-  font-size: clamp(24px, 5vw, 36px);
-  font-weight: 900;
-  color: #fff;
-  letter-spacing: 0.1em;
-  margin-bottom: 10px;
-}
-
-.opp-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  color: var(--dim);
-}
-
-/* Three class cards */
-.class-cards {
-  display: flex;
-  gap: 20px;
-  width: 100%;
-  justify-content: center;
-}
-
-.class-card {
-  flex: 1;
-  max-width: 260px;
-  position: relative;
-  background: var(--surface);
-  border: 1px solid rgba(255,255,255,0.08);
-  padding: 28px 20px 20px;
-  cursor: pointer;
-  transition: all 0.25s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
-}
-
-/* Corner decoration */
-.card-corner {
-  position: absolute;
-  width: 12px; height: 12px;
-}
-.card-corner.tl { top: 4px; left: 4px; border-top: 2px solid; border-left: 2px solid; }
-.card-corner.tr { top: 4px; right: 4px; border-top: 2px solid; border-right: 2px solid; }
-
-.class-card[data-class="magician"] .card-corner { border-color: var(--col-magician); }
-.class-card[data-class="assassin"] .card-corner { border-color: var(--col-assassin); }
-.class-card[data-class="archer"]   .card-corner { border-color: var(--col-archer); }
-
-/* Hover */
-.class-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(255,255,255,0.2);
-}
-.class-card[data-class="magician"]:hover { box-shadow: 0 0 30px rgba(200,100,255,0.2); }
-.class-card[data-class="assassin"]:hover { box-shadow: 0 0 30px rgba(68,255,136,0.2); }
-.class-card[data-class="archer"]:hover   { box-shadow: 0 0 30px rgba(255,170,0,0.2); }
-
-/* Selected */
-.class-card.selected {
-  transform: translateY(-6px);
-  pointer-events: none;
-}
-.class-card[data-class="magician"].selected { border-color: var(--col-magician); box-shadow: 0 0 40px rgba(200,100,255,0.35); }
-.class-card[data-class="assassin"].selected { border-color: var(--col-assassin); box-shadow: 0 0 40px rgba(68,255,136,0.35); }
-.class-card[data-class="archer"].selected   { border-color: var(--col-archer);   box-shadow: 0 0 40px rgba(255,170,0,0.35); }
-
-/* Not selected (dimmed when other is chosen) */
-.class-card.dimmed { opacity: 0.35; transform: none; pointer-events: none; }
-
-.card-icon { font-size: 40px; line-height: 1; margin-bottom: 4px; }
-.card-name { font-family: var(--font-display); font-size: 18px; font-weight: 700; letter-spacing: 0.08em; }
-.card-flavor { font-size: 12px; color: var(--dim); letter-spacing: 0.1em; }
-
-.card-divider {
-  width: 80%; height: 1px;
-  background: var(--border);
-  margin: 6px 0;
-}
-
-.card-skills { width: 100%; display: flex; flex-direction: column; gap: 10px; }
-
-.skill-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.skill-key {
-  width: 22px; height: 22px;
-  border-radius: 4px;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-display);
-  font-size: 9px; font-weight: 700;
-  flex-shrink: 0;
-  letter-spacing: 0;
-  margin-top: 1px;
-}
-.lclick { background: rgba(255,80,80,0.2); border: 1px solid rgba(255,80,80,0.4); color: #ff8888; }
-.rclick { background: rgba(80,80,255,0.2); border: 1px solid rgba(80,80,255,0.4); color: #8888ff; }
-
-.skill-name { font-size: 13px; font-weight: 600; color: var(--text); }
-.skill-stat { font-size: 11px; color: var(--dim); margin-top: 1px; }
-
-.card-select-btn {
-  margin-top: 8px;
-  padding: 8px 24px;
-  font-family: var(--font-display);
-  font-size: 11px;
-  letter-spacing: 0.25em;
-  border: 1px solid rgba(255,255,255,0.15);
-  color: rgba(255,255,255,0.6);
-  transition: all 0.2s;
-  width: 100%;
-  text-align: center;
-}
-.class-card:hover .card-select-btn {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.3);
-  color: #fff;
-}
-.class-card[data-class="magician"]:hover .card-select-btn { background: rgba(200,100,255,0.1); border-color: var(--col-magician); color: var(--col-magician); }
-.class-card[data-class="assassin"]:hover .card-select-btn { background: rgba(68,255,136,0.1);  border-color: var(--col-assassin); color: var(--col-assassin); }
-.class-card[data-class="archer"]:hover   .card-select-btn { background: rgba(255,170,0,0.1);   border-color: var(--col-archer);   color: var(--col-archer); }
-
-.class-status-bar {
-  font-family: var(--font-display);
-  font-size: 12px;
-  letter-spacing: 0.2em;
-  color: #4f8;
-  padding: 10px 24px;
-  border: 1px solid rgba(68,255,136,0.25);
-  background: rgba(68,255,136,0.05);
-  text-align: center;
-}
-
-/* ────────────────────────────────────────────
-   GAME SCREEN
-──────────────────────────────────────────── */
-#game-screen {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg);
-}
-
-#game-canvas {
-  display: block;
-  max-width: 100vw;
-  max-height: 100vh;
-  cursor: crosshair;
-  image-rendering: pixelated;
-}
-
-/* Countdown overlay */
-.countdown-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(8,12,20,0.75);
-  z-index: 10;
-}
-
-#countdown-number {
-  font-family: var(--font-display);
-  font-size: clamp(80px, 20vw, 140px);
-  font-weight: 900;
-  color: #fff;
-  text-shadow: 0 0 60px var(--blue), 0 0 120px rgba(0,170,255,0.4);
-  animation: cdPop 0.4s ease-out;
-}
-#countdown-number.fight {
-  color: var(--red);
-  text-shadow: 0 0 60px var(--red);
-}
-@keyframes cdPop {
-  from { transform: scale(1.6); opacity: 0; }
-  to   { transform: scale(1);   opacity: 1; }
-}
-
-/* Game over message */
-.game-msg {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(8,12,20,0.95);
-  border: 1px solid var(--border);
-  padding: 28px 52px;
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  color: #fff;
-  text-align: center;
-  z-index: 20;
-  white-space: nowrap;
-}
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
