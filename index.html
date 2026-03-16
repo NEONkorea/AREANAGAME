@@ -167,9 +167,68 @@
     </div>
   </div>
 
+  <!-- ── ROTATE NOTICE (모바일 세로 모드) ── -->
+  <div id="rotate-notice" class="mobile-only">
+    <div class="rotate-icon">📱</div>
+    <div style="font-family:'Orbitron',monospace;font-size:16px;letter-spacing:0.2em;color:#fff">가로 모드로 회전하세요</div>
+    <p>ROTATE DEVICE TO LANDSCAPE</p>
+  </div>
+
   <!-- ── GAME ── -->
   <div id="game-screen" class="hidden">
     <canvas id="game-canvas"></canvas>
+
+    <!-- 모바일 컨트롤 오버레이 -->
+    <div id="mobile-controls" class="mobile-only">
+      <!-- 공격 방향 화살표 캔버스 -->
+      <canvas id="attack-arrow-canvas"></canvas>
+
+      <!-- 왼쪽: 이동 조이스틱 -->
+      <div class="joystick-zone left-zone">
+        <div class="joystick-wrap move-joystick" id="move-joystick-wrap">
+          <div class="joystick-base" id="move-joystick-base">
+            <div class="joystick-knob" id="move-joystick-knob"></div>
+          </div>
+        </div>
+        <div class="joystick-label">MOVE</div>
+      </div>
+
+      <!-- 오른쪽: 특수공격(위) + 일반공격(아래) 조이스틱 -->
+      <div class="joystick-zone right-zone">
+        <!-- 특수 공격 조이스틱 (작게, 위) -->
+        <div class="joystick-wrap special-joystick" id="special-joystick-wrap">
+          <div class="joystick-base" id="special-joystick-base">
+            <div class="cd-ring-wrap">
+              <svg class="cd-ring-svg" id="special-cd-svg" viewBox="0 0 80 80">
+                <circle class="cd-ring-track" cx="40" cy="40" r="36"/>
+                <circle class="cd-ring-fill" id="special-cd-ring" cx="40" cy="40" r="36"/>
+              </svg>
+            </div>
+            <div class="joystick-icon" id="special-joystick-icon">💚</div>
+            <div class="cd-text" id="special-cd-text"></div>
+            <div class="joystick-knob" id="special-joystick-knob"></div>
+          </div>
+        </div>
+        <div class="joystick-label">SPECIAL</div>
+
+        <!-- 일반 공격 조이스틱 (크게, 아래) -->
+        <div class="joystick-wrap attack-joystick" id="attack-joystick-wrap">
+          <div class="joystick-base" id="attack-joystick-base">
+            <div class="cd-ring-wrap">
+              <svg class="cd-ring-svg" id="normal-cd-svg" viewBox="0 0 108 108">
+                <circle class="cd-ring-track" cx="54" cy="54" r="49"/>
+                <circle class="cd-ring-fill" id="normal-cd-ring" cx="54" cy="54" r="49"/>
+              </svg>
+            </div>
+            <div class="joystick-icon" id="attack-joystick-icon">🔥</div>
+            <div class="cd-text" id="normal-cd-text"></div>
+            <div class="joystick-knob" id="attack-joystick-knob"></div>
+          </div>
+        </div>
+        <div class="joystick-label">ATTACK</div>
+      </div>
+    </div>
+
     <div id="countdown-overlay" class="countdown-overlay hidden">
       <div id="countdown-number">3</div>
     </div>
