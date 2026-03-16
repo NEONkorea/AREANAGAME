@@ -463,3 +463,344 @@ html, body {
   z-index: 20;
   white-space: nowrap;
 }
+
+/* ────────────────────────────────────────────
+   MOBILE DETECTION — PC에서는 모바일 UI 숨김
+──────────────────────────────────────────── */
+.mobile-only { display: none !important; }
+
+@media (pointer: coarse), (max-width: 1024px) {
+  .mobile-only { display: flex !important; }
+  .pc-only     { display: none !important; }
+}
+
+/* ────────────────────────────────────────────
+   MOBILE LOBBY — 가로 레이아웃 최적화
+──────────────────────────────────────────── */
+@media (pointer: coarse), (max-width: 1024px) {
+  html, body {
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  #lobby .lobby-content {
+    gap: 20px;
+    width: min(420px, 90vw);
+    padding: 12px;
+  }
+
+  .title {
+    font-size: clamp(36px, 10vw, 56px);
+  }
+
+  .btn-text { font-size: 13px; }
+  .btn-sub  { font-size: 9px; }
+  .btn      { padding: 14px 10px; }
+
+  .code-digits span {
+    width: 42px; height: 52px;
+    font-size: 28px;
+  }
+
+  .digit {
+    width: 42px; height: 52px;
+    font-size: 26px;
+  }
+
+  /* 가로 모드 강제 안내 (세로일 때) */
+  #rotate-notice {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 9999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    font-family: var(--font-display);
+    color: var(--text);
+    text-align: center;
+    padding: 24px;
+  }
+  #rotate-notice .rotate-icon {
+    font-size: 52px;
+    animation: rotateHint 2s ease-in-out infinite;
+  }
+  #rotate-notice p {
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+  }
+  @keyframes rotateHint {
+    0%, 100% { transform: rotate(0deg); }
+    50%       { transform: rotate(90deg); }
+  }
+}
+
+/* ────────────────────────────────────────────
+   MOBILE GAME CONTROLS OVERLAY
+──────────────────────────────────────────── */
+#mobile-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  display: none;
+}
+
+@media (pointer: coarse), (max-width: 1024px) {
+  #mobile-controls {
+    display: block;
+  }
+}
+
+/* ── 공격 방향 화살표 오버레이 ── */
+#attack-arrow-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+}
+
+/* ── 조이스틱 공통 ── */
+.joystick-zone {
+  position: absolute;
+  bottom: 0;
+  pointer-events: all;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 18px;
+  gap: 12px;
+}
+
+.joystick-zone.left-zone {
+  left: 0;
+  width: 42%;
+  height: 100%;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 20px;
+}
+
+.joystick-zone.right-zone {
+  right: 0;
+  width: 42%;
+  height: 100%;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 20px;
+  gap: 16px;
+}
+
+/* 조이스틱 컨테이너 */
+.joystick-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 조이스틱 기본 베이스 */
+.joystick-base {
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 이동 조이스틱 (크게) */
+.move-joystick .joystick-base {
+  width: 110px;
+  height: 110px;
+  background: rgba(0,170,255,0.07);
+  border: 2px solid rgba(0,170,255,0.25);
+  box-shadow: 0 0 24px rgba(0,170,255,0.1), inset 0 0 20px rgba(0,0,0,0.3);
+}
+
+/* 일반 공격 조이스틱 */
+.attack-joystick .joystick-base {
+  width: 100px;
+  height: 100px;
+  background: rgba(255,34,68,0.07);
+  border: 2px solid rgba(255,34,68,0.25);
+  box-shadow: 0 0 24px rgba(255,34,68,0.1), inset 0 0 20px rgba(0,0,0,0.3);
+}
+
+/* 특수 공격 조이스틱 (작게) */
+.special-joystick .joystick-base {
+  width: 72px;
+  height: 72px;
+  background: rgba(200,100,255,0.07);
+  border: 2px solid rgba(200,100,255,0.25);
+  box-shadow: 0 0 20px rgba(200,100,255,0.1), inset 0 0 15px rgba(0,0,0,0.3);
+}
+
+/* 조이스틱 방향 십자 가이드 */
+.joystick-base::before,
+.joystick-base::after {
+  content: '';
+  position: absolute;
+  background: rgba(255,255,255,0.04);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.joystick-base::before { width: 2px; height: 80%; }
+.joystick-base::after  { width: 80%; height: 2px; }
+
+/* 조이스틱 노브 */
+.joystick-knob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: none;
+  will-change: transform;
+}
+
+.move-joystick .joystick-knob {
+  width: 44px; height: 44px;
+  background: radial-gradient(circle at 35% 35%, rgba(0,200,255,0.95), rgba(0,100,200,0.8));
+  border: 2px solid rgba(0,200,255,0.7);
+  box-shadow: 0 0 16px rgba(0,170,255,0.6), 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.attack-joystick .joystick-knob {
+  width: 40px; height: 40px;
+  background: radial-gradient(circle at 35% 35%, rgba(255,100,120,0.95), rgba(200,30,50,0.8));
+  border: 2px solid rgba(255,80,100,0.7);
+  box-shadow: 0 0 16px rgba(255,34,68,0.6), 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.special-joystick .joystick-knob {
+  width: 28px; height: 28px;
+  background: radial-gradient(circle at 35% 35%, rgba(220,140,255,0.95), rgba(150,60,220,0.8));
+  border: 2px solid rgba(200,100,255,0.7);
+  box-shadow: 0 0 14px rgba(200,100,255,0.6), 0 2px 8px rgba(0,0,0,0.5);
+}
+
+/* 쿨타임 중 조이스틱 상태 */
+.joystick-base.on-cooldown {
+  opacity: 0.45;
+  filter: grayscale(0.4);
+}
+
+/* 활성화 애니메이션 */
+.joystick-base.activated {
+  animation: joystickActivate 0.18s ease-out;
+}
+@keyframes joystickActivate {
+  0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
+  100% { box-shadow: 0 0 0 18px rgba(255,255,255,0); }
+}
+
+/* 조이스틱 라벨 */
+.joystick-label {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: rgba(200,216,240,0.3);
+  text-align: center;
+  margin-top: 4px;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 쿨타임 링 (조이스틱 위에 표시) */
+.cd-ring-wrap {
+  position: absolute;
+  inset: -4px;
+  pointer-events: none;
+}
+.cd-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+.cd-ring-track {
+  fill: none;
+  stroke: rgba(255,255,255,0.08);
+  stroke-width: 3;
+}
+.cd-ring-fill {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.1s linear;
+}
+.attack-joystick .cd-ring-fill  { stroke: rgba(255,80,100,0.8); }
+.special-joystick .cd-ring-fill { stroke: rgba(200,100,255,0.8); }
+
+/* CD 남은 시간 텍스트 */
+.cd-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffaa00;
+  pointer-events: none;
+  text-shadow: 0 0 8px rgba(255,170,0,0.8);
+}
+
+/* 아이콘 레이어 */
+.joystick-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  opacity: 0.25;
+  pointer-events: none;
+  user-select: none;
+}
+.special-joystick .joystick-icon { font-size: 14px; }
+
+/* ────────────────────────────────────────────
+   ATTACK DIRECTION ARROW (브롤스타즈 스타일)
+──────────────────────────────────────────── */
+#attack-arrow-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ────────────────────────────────────────────
+   MOBILE CLASS SELECT — 가로 최적화
+──────────────────────────────────────────── */
+@media (pointer: coarse) and (orientation: landscape),
+       (max-width: 1024px) and (orientation: landscape) {
+
+  .class-content {
+    gap: 14px;
+    padding: 10px 16px;
+  }
+
+  .class-title { font-size: clamp(18px, 3vw, 26px); margin-bottom: 4px; }
+  .class-title-tag { font-size: 9px; margin-bottom: 4px; }
+  .class-cards { gap: 12px; }
+
+  .class-card {
+    padding: 16px 12px 12px;
+    gap: 5px;
+  }
+
+  .card-icon { font-size: 28px; }
+  .card-name { font-size: 14px; }
+  .card-flavor { font-size: 10px; }
+  .skill-name { font-size: 11px; }
+  .skill-stat { font-size: 9px; }
+  .card-select-btn { padding: 6px 12px; font-size: 10px; }
+  .card-skills { gap: 6px; }
+}
