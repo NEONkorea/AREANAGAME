@@ -411,9 +411,6 @@ html, body {
 
 #game-canvas {
   display: block;
-  /* 16:9 비율 유지하며 화면을 최대한 채움 */
-  width: min(100vw, 177.78vh);   /* 100vh * (16/9) */
-  height: min(100vh, 56.25vw);   /* 100vw * (9/16) */
   max-width: 100vw;
   max-height: 100vh;
   cursor: crosshair;
@@ -557,34 +554,35 @@ html, body {
     display: block;
   }
 
-  /* 모바일: 게임화면 세로 스택 */
+  /* 모바일 게임 화면: 캔버스를 상단에, 조이스틱은 하단 */
   #game-screen {
     flex-direction: column;
     justify-content: flex-start;
-    align-items: stretch;
+    align-items: center;
+    background: var(--bg);
   }
 
-  /* 캔버스는 상단 고정 높이 — 조이스틱 공간 확보 */
   #game-canvas {
     width: 100vw !important;
-    height: 56.25vw !important;  /* 16:9 정확한 비율 */
-    max-height: 62vh;            /* 조이스틱 공간 확보 */
+    height: auto !important;
+    max-height: 52vh;        /* 상단 절반에 캔버스(HUD 포함) */
     max-width: 100vw;
-    object-fit: contain;
     flex-shrink: 0;
   }
 
-  /* 조이스틱 존: 캔버스 아래쪽 절반에만 제한 */
-  .joystick-zone.left-zone {
-    top: auto;
-    bottom: 0;
-    height: 48vh;
+  /* 조이스틱 존은 캔버스 아래 영역 전체 */
+  #mobile-controls {
+    position: relative;
+    width: 100vw;
+    flex: 1;
+    min-height: 0;
   }
 
+  .joystick-zone.left-zone,
   .joystick-zone.right-zone {
-    top: auto;
-    bottom: 0;
-    height: 48vh;
+    position: absolute;
+    height: 100%;
+    padding-bottom: 12px;
   }
 }
 
