@@ -118,7 +118,17 @@ document.getElementById('btn-create').addEventListener('click', () => {
   roomCode.split('').forEach((ch, i) => spans[i].textContent = ch);
   mainButtons.classList.add('hidden');
   createSection.classList.remove('hidden');
-  peer = new Peer(PEER_PREFIX + roomCode);
+  peer = new Peer(PEER_PREFIX + roomCode, {
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+      ]
+    }
+  });
   peer.on('open', () => {});
   peer.on('connection', c => { conn = c; setupConn(); });
   peer.on('error', err => { alert('연결 오류: ' + err.type); resetToLobby(); });
@@ -155,7 +165,17 @@ function tryJoin() {
   if (code.length !== 4) { setJoinStatus('4자리를 모두 입력하세요', 'error'); return; }
   isHost = false; roomCode = code;
   setJoinStatus('연결 중…', '');
-  peer = new Peer();
+  peer = new Peer(undefined, {
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+      ]
+    }
+  });
   peer.on('open', () => {
     conn = peer.connect(PEER_PREFIX + code, { reliable: true });
     setupConn();
