@@ -469,17 +469,18 @@ html, body {
 ──────────────────────────────────────────── */
 .mobile-only { display: none !important; }
 
-@media (pointer: coarse) {
-  .mobile-only { display: flex; }   /* !important 제거 — JS로 덮어쓸 수 있게 */
+@media (pointer: coarse), (max-width: 1024px) {
+  .mobile-only { display: flex !important; }
   .pc-only     { display: none !important; }
 }
 
 /* ────────────────────────────────────────────
    MOBILE LOBBY — 가로 레이아웃 최적화
 ──────────────────────────────────────────── */
-@media (pointer: coarse) {
+@media (pointer: coarse), (max-width: 1024px) {
   html, body {
     overflow: hidden;
+    touch-action: none;
   }
 
   #lobby .lobby-content {
@@ -505,6 +506,36 @@ html, body {
     width: 42px; height: 52px;
     font-size: 26px;
   }
+
+  /* 가로 모드 강제 안내 (세로일 때) */
+  #rotate-notice {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 9999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    font-family: var(--font-display);
+    color: var(--text);
+    text-align: center;
+    padding: 24px;
+  }
+  #rotate-notice .rotate-icon {
+    font-size: 52px;
+    animation: rotateHint 2s ease-in-out infinite;
+  }
+  #rotate-notice p {
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+  }
+  @keyframes rotateHint {
+    0%, 100% { transform: rotate(0deg); }
+    50%       { transform: rotate(90deg); }
+  }
 }
 
 /* ────────────────────────────────────────────
@@ -518,9 +549,40 @@ html, body {
   display: none;
 }
 
-@media (pointer: coarse), (max-width: 1024px) {
+@media (pointer: coarse) {
   #mobile-controls {
     display: block;
+  }
+
+  /* 모바일 게임 화면: 캔버스를 상단에, 조이스틱은 하단 */
+  #game-screen {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    background: var(--bg);
+  }
+
+  #game-canvas {
+    width: 100vw !important;
+    height: auto !important;
+    max-height: 52vh;        /* 상단 절반에 캔버스(HUD 포함) */
+    max-width: 100vw;
+    flex-shrink: 0;
+  }
+
+  /* 조이스틱 존은 캔버스 아래 영역 전체 */
+  #mobile-controls {
+    position: relative;
+    width: 100vw;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .joystick-zone.left-zone,
+  .joystick-zone.right-zone {
+    position: absolute;
+    height: 100%;
+    padding-bottom: 12px;
   }
 }
 
