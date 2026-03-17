@@ -425,11 +425,13 @@ function tryFireNormal(now, isCharged = false) {
     if (isCharged) {
       const elapsed = Math.min(now - chargeStart, 3000);
       const pct     = elapsed / 3000;
-      const dmg     = 2 + pct * 4.5;   // 2 → 6.5
-      const speed   = 7;
-      spawnProj('arrow', myPos.x, myPos.y, nx * speed, ny * speed, dmg, 3200);
+      const dmg     = 2 + pct * 4.5;          // 2 → 6.5 dmg (차징 비율)
+      const speed   = 7 + pct * 8;            // 7 → 15 속도 (차징 비율)
+      // 빠른 화살도 아레나 끝까지 닿도록 maxAge를 속도에 맞춰 조정
+      const maxAge  = Math.round(3200 * (7 / speed));
+      spawnProj('arrow', myPos.x, myPos.y, nx * speed, ny * speed, dmg, maxAge);
     } else {
-      // Rapid fire or quick tap
+      // Rapid fire or quick tap (무차징 — 기본 속도 고정)
       const speed = isRapidFire(now) ? 7 * 1.3 : 7;
       spawnProj('arrow', myPos.x, myPos.y, nx * speed, ny * speed, 2, 3000);
     }
