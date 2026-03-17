@@ -25,6 +25,11 @@ html, body {
   font-family: var(--font-body);
   overflow: hidden;
   user-select: none;
+  /* 모바일 확대/스크롤 방지 */
+  touch-action: none;
+  -webkit-text-size-adjust: 100%;
+  position: fixed;
+  width: 100%;
 }
 
 .hidden { display: none !important; }
@@ -62,9 +67,10 @@ html, body {
    LOBBY
 ──────────────────────────────────────────── */
 #lobby {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -223,9 +229,10 @@ html, body {
    CLASS SELECT
 ──────────────────────────────────────────── */
 #class-screen {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -240,8 +247,16 @@ html, body {
   align-items: center;
   gap: 28px;
   width: min(900px, 96vw);
+  max-height: 100vh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px;
+  /* 스크롤바 숨기기 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.class-content::-webkit-scrollbar { display: none; }
 
 .class-header { text-align: center; }
 
@@ -400,13 +415,16 @@ html, body {
    GAME SCREEN
 ──────────────────────────────────────────── */
 #game-screen {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--bg);
+  overflow: hidden;
 }
 
 #game-canvas {
@@ -514,11 +532,12 @@ html, body {
    MOBILE GAME CONTROLS OVERLAY
 ──────────────────────────────────────────── */
 #mobile-controls {
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 5;
   display: none;
+  overflow: hidden;
 }
 
 @media (pointer: coarse), (max-width: 1024px) {
@@ -544,7 +563,8 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  padding-bottom: 18px;
+  /* safe-area 고려한 하단 여백 */
+  padding-bottom: max(18px, env(safe-area-inset-bottom, 18px));
   gap: 12px;
 }
 
@@ -554,7 +574,7 @@ html, body {
   height: 100%;
   justify-content: flex-end;
   align-items: center;
-  padding-bottom: 20px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
 }
 
 .joystick-zone.right-zone {
@@ -563,7 +583,7 @@ html, body {
   height: 100%;
   justify-content: flex-end;
   align-items: center;
-  padding-bottom: 20px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
   gap: 16px;
 }
 
@@ -775,4 +795,28 @@ html, body {
   .skill-stat { font-size: 9px; }
   .card-select-btn { padding: 6px 12px; font-size: 10px; }
   .card-skills { gap: 6px; }
+}
+
+/* ────────────────────────────────────────────
+   SMALL SCREEN — 조이스틱 크기 축소
+   (높이 480px 이하 or 폭 400px 이하)
+──────────────────────────────────────────── */
+@media (pointer: coarse) and (max-height: 480px) {
+  .move-joystick .joystick-base    { width: 84px;  height: 84px; }
+  .move-joystick .joystick-knob    { width: 34px;  height: 34px; }
+  .attack-joystick .joystick-base  { width: 80px;  height: 80px; }
+  .attack-joystick .joystick-knob  { width: 32px;  height: 32px; }
+  .special-joystick .joystick-base { width: 56px;  height: 56px; }
+  .special-joystick .joystick-knob { width: 22px;  height: 22px; }
+  .joystick-zone { padding-bottom: max(8px, env(safe-area-inset-bottom, 8px)); gap: 8px; }
+  .joystick-zone.right-zone { gap: 10px; }
+}
+
+@media (pointer: coarse) and (max-width: 360px) {
+  .move-joystick .joystick-base    { width: 90px;  height: 90px; }
+  .move-joystick .joystick-knob    { width: 36px;  height: 36px; }
+  .attack-joystick .joystick-base  { width: 84px;  height: 84px; }
+  .attack-joystick .joystick-knob  { width: 34px;  height: 34px; }
+  .special-joystick .joystick-base { width: 62px;  height: 62px; }
+  .special-joystick .joystick-knob { width: 24px;  height: 24px; }
 }
